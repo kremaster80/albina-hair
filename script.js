@@ -112,7 +112,7 @@
   const validTelegram = /^[a-zA-Z][a-zA-Z0-9_]{4,31}$/.test(telegram);
   function contactLink(label, url) {
     const link = document.createElement('a');
-    link.className = 'contact-chip'; link.textContent = `${label} ↗`;
+    link.className = 'contact-chip'; link.textContent = label;
     link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer';
     contactsContainer.appendChild(link);
   }
