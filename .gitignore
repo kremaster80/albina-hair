@@ -1,0 +1,7 @@
+# ALBINA static site
+.DS_Store
+Thumbs.db
+node_modules/
+.env
+.env.*
+!.env.example
