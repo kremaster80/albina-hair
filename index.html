@@ -160,6 +160,14 @@
           </div>
         </div>
         <p class="price-disclaimer">Цены указаны в рублях. Стоимость окрашивания зависит от длины и густоты волос; окончательная цена уточняется на консультации.</p>
+        <aside class="return-offer reveal" aria-label="Скидка на повторные визиты">
+          <div class="return-offer-copy">
+            <span class="return-offer-eyebrow">ДЛЯ ПОСТОЯННЫХ ГОСТЕЙ</span>
+            <p>Приятно <em>возвращаться.</em></p>
+            <span class="return-offer-caption">Скидка на второй и каждый последующий визит</span>
+          </div>
+          <strong class="return-offer-value">−10<span>%</span></strong>
+        </aside>
       </div>
     </section>
 
@@ -171,6 +179,46 @@
           <form id="booking-form" novalidate>
             <div class="field"><label for="client-name">Как к вам обращаться?</label><input type="text" id="client-name" name="name" autocomplete="name" maxlength="80" placeholder="Ваше имя" required></div>
             <div class="field"><label for="client-service">Какая услуга интересует?</label><select id="client-service" name="service" required><option value="">Выберите услугу</option><option>Женская стрижка</option><option>Стрижка чёлки</option><option>Тонирование</option><option>Окрашивание тон в тон</option><option>Рельефное окрашивание / мелирование</option><option>AirTouch</option><option>Уход Davines</option><option>Пилинг кожи головы</option><option>Консультация</option><option>Пока не знаю — нужна консультация</option></select></div>
+            <div class="questionnaire-intro">
+              <span>НЕБОЛЬШАЯ АНКЕТА</span>
+              <p>Чтобы наша встреча прошла именно так, как вам хочется.</p>
+              <small>Отвечайте на то, что вам подходит</small>
+            </div>
+            <fieldset class="question-group">
+              <legend><span class="question-number">01</span> Цель визита</legend>
+              <p class="question-hint">Что хотите получить?</p>
+              <div class="answer-list">
+                <label class="answer-choice"><input type="radio" name="visit_goal" value="Освежить образ: подстричь кончики, окрасить корни"><span>Освежить то, что есть <small>Подстричь кончики, окрасить корни</small></span></label>
+                <label class="answer-choice"><input type="radio" name="visit_goal" value="Лечение волос"><span>Лечение волос</span></label>
+                <label class="answer-choice"><input type="radio" name="visit_goal" value="Кардинально изменить имидж: стрижка и сложное окрашивание"><span>Кардинально изменить имидж <small>Стрижка и сложное окрашивание</small></span></label>
+              </div>
+            </fieldset>
+            <fieldset class="question-group">
+              <legend><span class="question-number">02</span> История волос</legend>
+              <p class="question-hint">Расскажите об окрашивании и процедурах</p>
+              <div class="answer-list">
+                <label class="answer-choice"><input type="radio" name="hair_history" value="Натуральные волосы"><span>Волосы натуральные</span></label>
+                <label class="answer-choice"><input type="radio" name="hair_history" value="Окрашены профессиональной краской в салоне"><span>Окрашены профессиональной краской <small>В салоне</small></span></label>
+                <label class="answer-choice"><input type="radio" name="hair_history" value="Окрашены бытовой краской, хной или тоником"><span>Окрашены самостоятельно <small>Бытовая краска, хна или тоник</small></span></label>
+                <label class="answer-choice"><input type="checkbox" name="hair_treatment" value="Кератин, ботокс или химическая завивка в последний год"><span>Были дополнительные процедуры <small>Кератин, ботокс или химическая завивка за последний год</small></span></label>
+              </div>
+            </fieldset>
+            <fieldset class="question-group">
+              <legend><span class="question-number">03</span> Частота ухода и окрашивания</legend>
+              <div class="answer-list">
+                <label class="answer-choice"><input type="radio" name="care_frequency" value="Регулярно, каждые 3–4 недели"><span>Регулярно, каждые 3–4 недели</span></label>
+                <label class="answer-choice"><input type="radio" name="care_frequency" value="Раз в полгода — год, предпочитаю незаметное отрастание"><span>Раз в полгода — год <small>Ищу окрашивание, которое отрастает незаметно</small></span></label>
+              </div>
+            </fieldset>
+            <fieldset class="question-group">
+              <legend><span class="question-number">04</span> Сервис и атмосфера</legend>
+              <p class="question-hint">Можно выбрать несколько вариантов</p>
+              <div class="answer-list">
+                <label class="answer-choice"><input type="checkbox" name="comfort" value="Люблю общение и вкусный кофе"><span>Люблю поболтать обо всём и выпить вкусный кофе</span></label>
+                <label class="answer-choice"><input type="checkbox" name="comfort" value="Предпочитаю тишину"><span>Предпочитаю тишину</span></label>
+                <label class="answer-choice"><input type="checkbox" name="comfort" value="Ценю скорость и каждую минуту"><span>Мне важна скорость, ценю каждую минуту</span></label>
+              </div>
+            </fieldset>
             <div class="field"><label for="client-comment">Ваше пожелание <span>(необязательно)</span></label><textarea id="client-comment" name="comment" maxlength="500" placeholder="Например, хочу освежить цвет и сохранить длину" rows="3"></textarea></div>
             <button class="btn btn-dark form-button" type="submit"><span id="form-button-text">Подготовить сообщение</span></button>
             <p class="form-help" id="form-help">Сообщение формируется только в вашем браузере. Данные никуда не отправляются без вашего действия.</p>

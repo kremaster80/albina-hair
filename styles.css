@@ -22,3 +22,48 @@
 .about-grid > *, .booking-grid > *, .price-layout > *, .portfolio-heading-row > *, .services-intro > *, .philosophy-heading-row > * {min-width:0}
 .price-side h3, .price-row h4, .principle h3, .footer-top, .footer-bottom {overflow-wrap:break-word}
 @media(max-width:640px){.price-row strong{flex:0 1 auto;min-width:85px}.about-caption{font-size:8px}.about-float{bottom:37px}.philosophy-heading-row,.services-intro,.portfolio-heading-row{min-width:0}}
+
+/* Анкета перед записью — ясные варианты вместо длинных полей ввода. */
+.questionnaire-intro{margin:34px 0 7px;padding-top:26px;border-top:1px solid var(--line)}
+.questionnaire-intro>span{display:block;font-size:9px;font-weight:800;letter-spacing:1.8px;color:#886b58}
+.questionnaire-intro p{margin-top:9px;font:500 25px/1.15 var(--display);letter-spacing:-.02em}
+.questionnaire-intro small{display:block;margin-top:9px;font-size:10px;line-height:1.6;color:var(--muted)}
+.question-group{min-width:0;margin:25px 0 0;padding:23px 0 0;border:0;border-top:1px solid var(--line)}
+.question-group legend{width:100%;padding:0;font-size:12px;font-weight:800;line-height:1.6;letter-spacing:-.01em}
+.question-number{font-size:9px;color:#986f58;letter-spacing:.1em;margin-right:9px;font-weight:800}
+.question-hint{font-size:10px;color:var(--muted);line-height:1.6;margin:8px 0 13px}
+.answer-list{display:grid;grid-template-columns:1fr;gap:8px;margin-top:13px}
+.answer-choice{display:flex;align-items:center;gap:13px;min-width:0;cursor:pointer;padding:14px 13px;background:#f8f5f0;border:1px solid #e3dcd3;transition:background .2s,border-color .2s,box-shadow .2s}
+.answer-choice:hover{background:#f1e9df;border-color:#bea792}
+.answer-choice:has(input:checked){background:#f0e5d8;border-color:#92725e;box-shadow:inset 3px 0 #8e6c56}
+.answer-choice:focus-within{outline:2px solid #92725e;outline-offset:2px}
+.answer-choice input{flex:0 0 auto;width:17px;height:17px;margin:0;accent-color:#735441;cursor:pointer}
+.answer-choice>span{display:block;min-width:0;font-size:11px;line-height:1.5;font-weight:700;color:var(--ink)}
+.answer-choice small{display:block;margin-top:3px;font-size:10px;font-weight:500;color:#695c52;line-height:1.5}
+.answer-choice input[type="checkbox"]{border-radius:2px}
+
+/* Акцент о повторных визитах в общей эстетике Albina Hair. */
+.return-offer{display:flex;align-items:center;justify-content:space-between;gap:28px;min-width:0;position:relative;margin-top:34px;padding:clamp(28px,4vw,54px);background:#2a2722;color:#f6f0e8;overflow:hidden}
+.return-offer::before{content:"";position:absolute;left:0;top:0;height:4px;width:100%;background:#b7977b}
+.return-offer-copy{min-width:0}
+.return-offer-eyebrow{display:block;font-size:9px;font-weight:800;letter-spacing:2px;color:#d7baa2}
+.return-offer-copy p{margin:16px 0 13px;font:500 clamp(34px,5vw,62px)/.95 var(--display);letter-spacing:-.025em}
+.return-offer-copy p em{font-weight:400}
+.return-offer-caption{font-size:12px;line-height:1.7;color:#e3d5c9}
+.return-offer-value{flex:0 0 auto;font:500 clamp(70px,11vw,150px)/.8 var(--display);letter-spacing:-.09em;white-space:nowrap;color:#e6cbb3}
+.return-offer-value span{font-size:.48em;vertical-align:top;letter-spacing:0}
+
+@media(max-width:640px){
+  .questionnaire-intro{margin-top:30px;padding-top:23px}
+  .questionnaire-intro p{font-size:24px}
+  .question-group{margin-top:22px;padding-top:20px}
+  .question-group legend{font-size:12px}
+  .answer-choice{min-height:54px;padding:13px 12px;gap:11px}
+  .answer-choice>span{font-size:11px}
+  .return-offer{padding:28px 24px;gap:12px;margin-top:28px;align-items:flex-end}
+  .return-offer-copy p{font-size:34px;line-height:1;margin:12px 0 11px}
+  .return-offer-caption{font-size:10px}
+  .return-offer-eyebrow{font-size:8px;letter-spacing:1.4px}
+  .return-offer-value{font-size:67px;align-self:center}
+}
+@media(max-width:375px){.return-offer{flex-direction:column;align-items:flex-start}.return-offer-value{align-self:flex-end;font-size:73px}.return-offer-copy p{font-size:32px}}

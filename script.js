@@ -157,7 +157,22 @@
     if (!name.value.trim()) { name.setAttribute('aria-invalid', 'true'); name.focus(); showToast('Укажите ваше имя'); return; }
     if (!service.value) { service.setAttribute('aria-invalid', 'true'); service.focus(); showToast('Выберите услугу'); return; }
     const note = $('#client-comment').value.trim();
-    const message = `Здравствуйте, Альбина! Меня зовут ${name.value.trim()}.\nХочу записаться: ${service.value}.${note ? `\nМои пожелания: ${note}` : ''}\nПодскажите, пожалуйста, свободное время.`;
+    const answers = new FormData(form);
+    const questionnaire = [
+      ['Цель визита', answers.get('visit_goal')],
+      ['История волос', answers.get('hair_history')],
+      ['Процедуры за последний год', answers.get('hair_treatment')],
+      ['Частота ухода и окрашивания', answers.get('care_frequency')],
+      ['Сервис и атмосфера', answers.getAll('comfort').join('; ')]
+    ].filter(([, value]) => value).map(([title, value]) => `${title}: ${value}`);
+    const message = [
+      `Здравствуйте, Альбина! Меня зовут ${name.value.trim()}.`,
+      `Хочу записаться: ${service.value}.`,
+      ...(questionnaire.length ? ['', 'Немного обо мне:', ...questionnaire] : []),
+      ...(note ? ['', `Мои пожелания: ${note}`] : []),
+      '',
+      'Подскажите, пожалуйста, свободное время.'
+    ].join('\n');
     feedback.hidden = false;
     feedback.textContent = message;
     if (phone.length >= 10 && phone.length <= 15) {
