@@ -1,0 +1,27 @@
+name: Integrations API checks
+
+on:
+  pull_request:
+    paths:
+      - 'admin/**'
+      - 'server/**'
+      - '.github/workflows/integrations-check.yml'
+  push:
+    branches:
+      - feature/integrations-dashboard
+
+jobs:
+  syntax-and-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check Node syntax
+        run: |
+          node --check server/integrations.mjs
+          node --check admin/admin.js
+          node --check server/smoke.test.mjs
+      - name: Run local API smoke tests
+        run: node server/smoke.test.mjs
