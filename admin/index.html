@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="referrer" content="no-referrer">
+  <title>Интеграции — ALBINA.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/admin/admin.css">
+  <script src="/admin/admin.js" defer></script>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <a href="/" class="brand" aria-label="На главную ALBINA">ALBINA<span>.</span></a>
+      <div class="header-right">
+        <span class="header-label">Приватная панель</span>
+        <button class="text-button" id="logout" hidden type="button">Выйти</button>
+      </div>
+    </header>
+    <main id="login" class="login-main" hidden>
+      <section class="login-card">
+        <p class="eyebrow">ALBINA / MANAGEMENT</p>
+        <h1>Вход в панель</h1>
+        <p>Введите отдельный код администратора. Пароли от Instagram, WhatsApp, DIKIDI и других сервисов здесь никогда не запрашиваются.</p>
+        <form id="login-form">
+          <label for="admin-password">Код доступа к панели</label>
+          <input id="admin-password" type="password" autocomplete="current-password" required minlength="16" placeholder="Код администратора">
+          <button class="button primary full" type="submit">Войти</button>
+          <span class="form-error" id="login-error" role="alert"></span>
+        </form>
+      </section>
+    </main>
+    <main id="dashboard" hidden>
+      <section class="intro">
+        <div>
+          <p class="eyebrow">УПРАВЛЕНИЕ / ИНТЕГРАЦИИ</p>
+          <h1>Все обращения.<br><em>В одном месте.</em></h1>
+          <p class="lead">Подключите сервисы Альбины через официальную авторизацию или созданные в личном кабинете ключи доступа. Ни один пароль от социальных сетей не передаётся разработчику.</p>
+        </div>
+        <div class="intro-side"><span>01 / 03</span><p>Подключения — первый этап. Приём сообщений, общая клиентская база и напоминания подключаются отдельно.</p></div>
+      </section>
+      <section class="summary" aria-label="Статистика подключений">
+        <div><span>Сервисы</span><strong>07</strong></div>
+        <div><span>Авторизовано</span><strong id="authorized-count">0</strong></div>
+        <div><span>Ожидает настройки</span><strong id="pending-count">7</strong></div>
+        <button id="refresh" class="button secondary" type="button">Обновить статусы</button>
+      </section>
+      <section class="connections" aria-labelledby="connections-heading">
+        <div class="section-heading"><div><p class="eyebrow">ВАШИ КАНАЛЫ</p><h2 id="connections-heading">Подключения</h2></div><p>Выберите сервис, чтобы увидеть доступный способ подключения.</p></div>
+        <div class="cards" id="service-cards"></div>
+      </section>
+      <section class="privacy">
+        <div><span class="section-no">02</span><h2>Доступ остаётся<br>под вашим контролем.</h2></div>
+        <div><p>Авторизация открывается на сайте самого сервиса. Когда официальный API выдаёт токен, сервер хранит его в зашифрованном виде вне публичной папки сайта. Доступ можно отключить из этой панели и отозвать в самом сервисе.</p><p>Привязка аккаунта не означает автоматический импорт всех переписок. Для этого нужны разрешения, вебхуки и отдельные интеграции.</p></div>
+      </section>
+      <footer>ALBINA. — внутренний интерфейс <span>2026</span></footer>
+    </main>
+    <main id="unavailable" class="login-main" hidden><section class="login-card"><p class="eyebrow">СЕРВЕР ИНТЕГРАЦИЙ</p><h1>Панель не запущена</h1><p>Интерфейс установлен, но сервер авторизации ещё не доступен. Настройте процесс и Nginx по инструкции INTEGRATIONS.md.</p><button class="button secondary full" id="retry" type="button">Повторить проверку</button></section></main>
+  </div>
+  <dialog id="service-dialog" aria-labelledby="dialog-title">
+    <div class="dialog-inner">
+      <div class="dialog-header"><span class="eyebrow">НАСТРОЙКА КАНАЛА</span><button type="button" class="close" id="close-dialog" aria-label="Закрыть окно">×</button></div>
+      <div class="dialog-icon" id="dialog-icon" aria-hidden="true"></div>
+      <h2 id="dialog-title"></h2>
+      <p id="dialog-description"></p>
+      <div class="dialog-note" id="dialog-note"></div>
+      <div id="dialog-actions"></div>
+      <div class="dialog-feedback" id="dialog-feedback" role="status" aria-live="polite"></div>
+      <button class="link-button" type="button" id="disconnect" hidden>Отключить сохранённый доступ</button>
+    </div>
+  </dialog>
+</body>
+</html>
