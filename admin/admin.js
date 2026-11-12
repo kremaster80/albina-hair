@@ -23,6 +23,7 @@
   let metaCode = null;
   let metaAssets = null;
   let metaSubmitting = false;
+  let metaConfig = null;
 
   function showPage(id) {
     ['login','dashboard','unavailable'].forEach(section => $(section).hidden = section !== id);
@@ -136,8 +137,14 @@
         () => openPopup('/api/integrations/'+p.id+'/start')));
       if (!statuses[p.id]?.configured) feedback('Для запуска OAuth сначала настройте приложение разработчика на сервере.');
     } else if (p.id === 'whatsapp') {
-      setActions(actionButton('Продолжить через Meta',startMetaSignup));
-      if (!statuses.whatsapp?.configured) feedback('Для подключения нужны Meta App ID, App Secret и Configuration ID Embedded Signup v4 на сервере.');
+      const button = actionButton('Продолжить через Meta', startMetaSignup);
+      button.disabled = true;
+      setActions(button);
+      feedback('Готовим безопасную авторизацию Meta…');
+      void prepareMetaSignup().then(() => {
+        button.disabled = false;
+        if (selected?.id === 'whatsapp') feedback('Meta готова. Нажмите кнопку для открытия официального окна.');
+      }).catch(error => { if (selected?.id === 'whatsapp') feedback(error.message,true); });
     } else if (p.id === 'dikidi') {
       const form = el('form','');
       const label1 = el('label','field-label','ID проекта DIKIDI (необязательно)');
@@ -237,23 +244,26 @@
       feedback('Регистрация в Meta не завершена.',true);
     }
   });
-  async function startMetaSignup() {
-    try {
-      const config = await api('/api/integrations/meta-config');
-      if (!config.configured || !config.appId || !config.configurationId) {
-        return feedback('Meta Embedded Signup пока не настроен на сервере.',true);
-      }
-      metaCode = null; metaAssets = null; metaSubmitting = false;
-      await loadMetaSdk(config.appId);
-      window.FB.login(response => {
-        const code = response?.authResponse?.code;
-        if (!code) return feedback('Meta не предоставила код авторизации. Повторите подключение.',true);
-        metaCode = code;
-        feedback('Авторизация Meta выполнена. Ожидаем сведения о WhatsApp Business...');
-        void completeMetaWhenReady();
-      },{config_id:config.configurationId,response_type:'code',override_default_response_type:true,
-        extras:{setup:{}}});
-    } catch(error) { feedback(error.message,true); }
+  async function prepareMetaSignup() {
+    const config = await api('/api/integrations/meta-config');
+    if (!config.configured || !config.appId || !config.configurationId) {
+      throw new Error('Meta Embedded Signup пока не настроен на сервере.');
+    }
+    await loadMetaSdk(config.appId);
+    metaConfig = config;
+  }
+  function startMetaSignup() {
+    // FB.login must run directly in a user click; awaiting a fetch here would block the popup.
+    if (!metaConfig || !window.FB) return feedback('Meta SDK ещё не готова.',true);
+    metaCode = null; metaAssets = null; metaSubmitting = false;
+    window.FB.login(response => {
+      const code = response?.authResponse?.code;
+      if (!code) return feedback('Meta не предоставила код авторизации. Повторите подключение.',true);
+      metaCode = code;
+      feedback('Авторизация Meta выполнена. Ожидаем сведения о WhatsApp Business...');
+      void completeMetaWhenReady();
+    },{config_id:metaConfig.configurationId,response_type:'code',override_default_response_type:true,
+      extras:{setup:{}}});
   }
 
   window.addEventListener('message',event => {
