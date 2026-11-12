@@ -251,7 +251,7 @@ async function whatsappComplete(req, res) {
   }
 }
 
-const server = http.createServer(async (req, res) => {
+async function route(req, res) {
   try {
     const url = new URL(req.url || '/', PUBLIC_ORIGIN);
     const pathname = url.pathname;
@@ -317,22 +317,16 @@ const server = http.createServer(async (req, res) => {
   } catch {
     return json(res, 500, { error: 'Internal error — see server logs' });
   }
-});
+}
 
-// OAuth callbacks are initiated by the provider, which does not send the admin session cookie.
-// Wrap listener to handle callbacks before the normal admin-session authorization.
-server.removeAllListeners('request');
-server.on('request', async (req, res) => {
+// OAuth callbacks come from providers and may not include the admin cookie.
+const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || '/', PUBLIC_ORIGIN);
   const callback = url.pathname.match(/^\/api\/integrations\/(instagram|google)\/callback$/);
   if (req.method === 'GET' && callback) {
     try { return await oauthCallback(req, res, callback[1], url); }
     catch { return outcome(res, callback[1], false, 'Ошибка подключения'); }
   }
-  return requestHandler(req, res);
-});
-
-function requestHandler(req, res) {
-  // Expose the original async handler via a separately registered listener, not public routes.
   return route(req, res);
-}
+});
+server.listen(PORT, '127.0.0.1', () => console.log('ALBINA integrations API listening on 127.0.0.1:' + PORT));
