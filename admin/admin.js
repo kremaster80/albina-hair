@@ -18,6 +18,122 @@
     {id:'dikidi', name:'DIKIDI Business', icon:'DI', type:'API-ключ', description:'Записи на услуги и клиентская история из DIKIDI.',
       note:'Войдите в DIKIDI на официальном сайте. В разделе «Настройки → Интеграция → Доступ к API» создайте отдельный ключ. Вводите его только в этой защищённой панели, а не в чате.'}
   ];
+  const guides = {
+  "instagram": {
+    "title": "Как подключить Instagram",
+    "steps": [
+      "Откройте свой Instagram и убедитесь, что профиль профессиональный (Business или Creator).",
+      "Если профиль личный, в настройках типа аккаунта переключитесь на профессиональный, только если это подходит вашему бизнесу.",
+      "Когда кнопка авторизации станет доступна, войдите через официальное окно Instagram и подтвердите запрошенные разрешения.",
+      "Вернитесь сюда и обновите статус. Дождитесь подтверждения, что тестовое обращение поступает в CRM."
+    ],
+    "hint": "Ключ вручную не нужен. Приложение Meta и разрешения готовит разработчик.",
+    "links": [
+      [
+        "Открыть Instagram",
+        "https://www.instagram.com/"
+      ]
+    ]
+  },
+  "whatsapp": {
+    "title": "Как подключить WhatsApp",
+    "steps": [
+      "Подготовьте рабочий номер и доступ к своему бизнес-аккаунту Meta.",
+      "Если номер уже используется в WhatsApp Business, сохраните текущую работу: не удаляйте аккаунт и не переносите номер самостоятельно.",
+      "После готовности подключения нажмите «Продолжить через Meta», выберите свой бизнес и рабочий номер.",
+      "Подтвердите разрешения и номер в официальном окне Meta. Коды подтверждения вводите только там.",
+      "Вернитесь в кабинет. Дождитесь проверки получения тестового сообщения."
+    ],
+    "hint": "Ключ вручную не нужен. Существующий номер подключаем только после проверки поддержки совместной работы с приложением WhatsApp Business.",
+    "links": [
+      [
+        "Открыть Meta Business",
+        "https://business.facebook.com/"
+      ]
+    ]
+  },
+  "telegram": {
+    "title": "Как начать работу с ботом",
+    "steps": [
+      "Откройте @albina_hair_bot по кнопке ниже.",
+      "Нажмите «Запустить» или отправьте /start.",
+      "Сообщите разработчику, что запустили бота. Он назначит ваш аккаунт администратором после проверки владения.",
+      "После подтверждения отправьте /start ещё раз: появится рабочее меню заявок и клиентов."
+    ],
+    "hint": "Создавать нового бота, получать токен или передавать код из Telegram не требуется. Личные переписки не импортируются.",
+    "links": []
+  },
+  "google": {
+    "title": "Как подключить профиль Google",
+    "steps": [
+      "Войдите в Google-аккаунт, который управляет вашим профилем компании.",
+      "Откройте карточку компании и убедитесь, что профиль подтверждён и вы имеете права владельца или управляющего.",
+      "Когда авторизация в этой панели станет доступна, нажмите кнопку входа через Google и подтвердите разрешения.",
+      "Вернитесь сюда и обновите статус. Сбор отзывов и данных проверяется отдельно."
+    ],
+    "hint": "Ключ вручную не нужен. Доступ к Business Profile API и OAuth-приложение оформляет разработчик.",
+    "links": [
+      [
+        "Открыть профиль компании",
+        "https://business.google.com/"
+      ],
+      [
+        "Справка о правах доступа",
+        "https://support.google.com/business/answer/3403100?hl=ru"
+      ]
+    ]
+  },
+  "yandex": {
+    "title": "Как настроить Яндекс Бизнес",
+    "steps": [
+      "Войдите в Яндекс Бизнес со своим аккаунтом.",
+      "Выберите карточку салона и проверьте право управления.",
+      "Если нужна онлайн-запись, откройте интеграцию Яндекс в DIKIDI и пройдите предложенные шаги и модерацию, если функция доступна вашему проекту.",
+      "Проверьте кнопку записи в карточке компании."
+    ],
+    "hint": "Ключ для импорта обращений пока не запрашиваем. Онлайн-запись через DIKIDI не означает синхронизацию переписок с CRM.",
+    "links": [
+      [
+        "Инструкция Яндекса по онлайн-записи",
+        "https://yandex.ru/support/business-priority/ru/manage/booking"
+      ]
+    ]
+  },
+  "2gis": {
+    "title": "Как подготовить карточку 2ГИС",
+    "steps": [
+      "Откройте личный кабинет 2ГИС и войдите в свой аккаунт.",
+      "Выберите вашу компанию. Если доступа нет, запросите его через официальный кабинет.",
+      "Проверьте телефон, сайт, часы работы и доступные способы записи.",
+      "Если кабинет позволяет указать ссылку записи, добавьте свою публичную ссылку DIKIDI."
+    ],
+    "hint": "Ключ для CRM пока не нужен: официальный способ автоматического импорта обращений не подтверждён. Не покупайте ключи картографических API для этой задачи.",
+    "links": [
+      [
+        "Справка 2ГИС",
+        "https://help.2gis.ru/question/kak-vnesti-izmeneniya-vnbspkartochku-kompanii"
+      ]
+    ]
+  },
+  "dikidi": {
+    "title": "Как получить ключ DIKIDI",
+    "steps": [
+      "Войдите в веб-версию DIKIDI Business и выберите свой проект.",
+      "Откройте Настройки → Интеграция → Доступ к API.",
+      "Нажмите «Добавить доступ» и задайте название Albina CRM.",
+      "Выберите минимально необходимые права для чтения клиентов и записей. Если для создания токена требуется роль администратора, сначала согласуйте объём доступа с разработчиком.",
+      "Нажмите «Добавить», скопируйте созданный токен и вставьте в защищённую форму ниже. ID проекта укажите, если он известен.",
+      "Сохраните ключ. Статус «Ожидается активация» в DIKIDI может сохраняться до настройки партнёрского доступа."
+    ],
+    "hint": "Не вводите пароль DIKIDI, общий партнёрский ключ или одноразовые коды. Сохранение токена не активирует синхронизацию.",
+    "links": [
+      [
+        "Пример получения ключа в справке DIKIDI",
+        "https://support.dikidi.net/ru/knowledge-bases/4/articles/992-kak-nastroit-integratsiyu-dikidi-c-prodoktorov"
+      ]
+    ]
+  }
+};
   let statuses = {};
   let selected = null;
   let metaCode = null;
@@ -60,6 +176,8 @@
   }
   function stateInfo(id) {
     const state = statuses[id]?.state;
+    if (['instagram','whatsapp','google'].includes(id) && !statuses[id]?.configured && state !== 'authorized') return {text:'Готовится подключение', className:'pending_setup'};
+    if (id === 'telegram') return {text:'Открыть бота', className:'not_connected'};
     if (state === 'authorized') return {text:'Авторизовано', className:'authorized'};
     if (state === 'key_saved_unverified') return {text:'Ключ сохранён · не проверен', className:'key_saved_unverified'};
     return {text:'Не подключено', className:'not_connected'};
@@ -84,7 +202,7 @@
       const description = el('p','',p.description);
       const bottom = el('div','card-bottom');
       bottom.append(el('span','',p.type));
-      const button = el('button','','Управлять');
+      const button = el('button','','Подключение и инструкция');
       button.type = 'button';
       button.setAttribute('aria-label','Управлять подключением '+p.name);
       button.addEventListener('click',() => openProvider(p.id));
@@ -128,23 +246,37 @@
     $('dialog-icon').textContent = p.icon;
     $('dialog-title').textContent = p.name;
     $('dialog-description').textContent = p.description;
-    $('dialog-note').textContent = p.note;
+    $('dialog-note').replaceChildren(el('p','',p.note));
+    const guide = guides[p.id];
+    const instructions = el('section','connection-guide');
+    instructions.append(el('h3','',guide.title));
+    const steps = el('ol','guide-steps');
+    guide.steps.forEach(step=>steps.append(el('li','',step)));
+    instructions.append(steps,el('p','guide-hint',guide.hint));
+    const links=el('div','guide-links');
+    guide.links.forEach(([name,url])=>links.append(actionLink(name,url)));
+    instructions.append(links);
+    $('dialog-note').append(instructions);
     $('dialog-actions').replaceChildren();
     $('disconnect').hidden = !['authorized','key_saved_unverified'].includes(statuses[p.id]?.state);
     feedback('');
     if (p.id === 'instagram' || p.id === 'google') {
-      setActions(actionButton('Авторизоваться через '+(p.id === 'google'?'Google':'Instagram'),
-        () => openPopup('/api/integrations/'+p.id+'/start')));
-      if (!statuses[p.id]?.configured) feedback('Для запуска OAuth сначала настройте приложение разработчика на сервере.');
+      const button=actionButton('Авторизоваться через '+(p.id === 'google'?'Google':'Instagram'),()=>openPopup('/api/integrations/'+p.id+'/start'));
+      button.disabled=!statuses[p.id]?.configured;
+      setActions(button);
+      if (button.disabled) feedback('Подключение готовится. Пока можно выполнить подготовительные шаги из инструкции.');
     } else if (p.id === 'whatsapp') {
       const button = actionButton('Продолжить через Meta', startMetaSignup);
       button.disabled = true;
       setActions(button);
+      if (!statuses[p.id]?.configured) { feedback('Подключение готовится. Пока можно проверить рабочий номер и доступ к Meta.'); }
+      else {
       feedback('Готовим безопасную авторизацию Meta…');
       void prepareMetaSignup().then(() => {
         button.disabled = false;
         if (selected?.id === 'whatsapp') feedback('Meta готова. Нажмите кнопку для открытия официального окна.');
-      }).catch(error => { if (selected?.id === 'whatsapp') feedback(error.message,true); });
+      }).catch(() => { if (selected?.id === 'whatsapp') feedback('Не удалось открыть авторизацию Meta. Попробуйте позже или обратитесь к разработчику.',true); });
+      }
     } else if (p.id === 'dikidi') {
       const form = el('form','');
       const label1 = el('label','field-label','ID проекта DIKIDI (необязательно)');
@@ -175,8 +307,8 @@
       form.append(label1,companyInput,label2,keyInput,hint,submit);
       $('dialog-actions').append(actionLink('Открыть DIKIDI Business','https://dikidi.net/ru/business'),form);
     } else if (p.id === 'telegram') {
-      setActions(actionLink('Создать отдельного бота через BotFather','https://t.me/BotFather'));
-      feedback('После создания бота потребуется серверный Bot API webhook и проверка владения. Личные диалоги Telegram не импортируются.');
+      setActions(actionLink('Открыть @albina_hair_bot','https://t.me/albina_hair_bot'));
+      feedback('Доступ к рабочему меню предоставляется после проверки вашего Telegram-аккаунта.');
     } else if (p.id === 'yandex') {
       setActions(actionLink('Войти в Яндекс Бизнес','https://business.yandex.ru/'));
       feedback('Этот вход откроет только кабинет Яндекса. Подключение к нашей базе пока не подтверждено.');
