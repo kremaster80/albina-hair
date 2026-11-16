@@ -38,6 +38,8 @@ jobs:
           node --check admin/admin.js
           node --check admin/crm.js
           node --check server/crm.mjs
+          node --check server/telegram.mjs
+          node --check server/crm.test.mjs
           node --check server/smoke.test.mjs
       - name: Run local API smoke tests
         run: node server/smoke.test.mjs
