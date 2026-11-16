@@ -141,7 +141,7 @@ export async function createCRM({records,json,origin,telegramTransport}){
    const r=await c.query("SELECT n.id,n.lead_id,n.attempts,c.source FROM crm_notifications n JOIN crm_leads l ON l.id=n.lead_id JOIN crm_contacts c ON c.id=l.contact_id WHERE sent_at IS NULL AND next_attempt_at<=now() AND attempts<12 ORDER BY n.id FOR UPDATE OF n SKIP LOCKED LIMIT 1");
    if(r.rowCount){
     const n=r.rows[0];let ok=false;
-    try{const response=await fetch('https://api.telegram.org/bot'+process.env.TELEGRAM_BOT_TOKEN+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:process.env.TELEGRAM_ADMIN_CHAT_ID,text:'Новая заявка #'+n.lead_id+' · '+n.source,reply_markup:{inline_keyboard:[[{text:'Открыть заявку',callback_data:'lead:'+n.lead_id}],[{text:'Рабочий кабинет',url:origin+'/admin/'}]]}}),signal:AbortSignal.timeout(8000)});ok=response.ok&&(await response.json()).ok===true}catch{}
+    try{await telegram.send(process.env.TELEGRAM_ADMIN_CHAT_ID,'Новая заявка #'+n.lead_id+' · '+n.source,[[{text:'Открыть заявку',callback_data:'lead:'+n.lead_id}],[{text:'Рабочий кабинет',url:origin+'/admin/'}]]);ok=true}catch{}
     if(ok)await c.query('UPDATE crm_notifications SET sent_at=now() WHERE id=$1',[n.id]);
     else await c.query("UPDATE crm_notifications SET attempts=attempts+1,next_attempt_at=now()+($2::int * interval '1 second') WHERE id=$1",[n.id,Math.min(3600,30*2**n.attempts)]);
    }
