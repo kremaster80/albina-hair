@@ -9,6 +9,7 @@ on:
   push:
     branches:
       - feature/integrations-dashboard
+      - fix/telegram-long-polling
 
 jobs:
   syntax-and-smoke:
@@ -39,6 +40,8 @@ jobs:
           node --check admin/crm.js
           node --check server/crm.mjs
           node --check server/telegram.mjs
+          node --check server/telegram-polling.mjs
+          node --test server/telegram-polling.test.mjs
           node --check server/crm.test.mjs
           node --check server/smoke.test.mjs
       - name: Run local API smoke tests
