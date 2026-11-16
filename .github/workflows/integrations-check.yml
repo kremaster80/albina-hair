@@ -13,6 +13,20 @@ on:
 jobs:
   syntax-and-smoke:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: albina_test
+          POSTGRES_PASSWORD: test_only
+          POSTGRES_DB: albina_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -27,3 +41,11 @@ jobs:
           node --check server/smoke.test.mjs
       - name: Run local API smoke tests
         run: node server/smoke.test.mjs
+
+      - name: Install CRM dependencies
+        run: npm --prefix server install --ignore-scripts
+      - name: Test actual PostgreSQL integration
+        env:
+          DATABASE_URL: postgresql://albina_test:test_only@127.0.0.1:5432/albina_test
+          CRM_TEST_DATABASE: '1'
+        run: node server/crm.test.mjs
