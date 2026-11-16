@@ -38,3 +38,18 @@ CREATE TABLE IF NOT EXISTS crm_notifications (
  sent_at timestamptz
 );
 CREATE INDEX IF NOT EXISTS crm_notifications_due ON crm_notifications(next_attempt_at) WHERE sent_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS crm_bot_state (
+ chat_id text PRIMARY KEY, mode text NOT NULL DEFAULT '', draft jsonb NOT NULL DEFAULT '{}',
+ consented_at timestamptz, reminders boolean NOT NULL DEFAULT false, updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS crm_bot_updates (
+ update_id bigint PRIMARY KEY, created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS crm_bot_reminders (
+ id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+ lead_id bigint NOT NULL REFERENCES crm_leads(id) ON DELETE CASCADE,
+ booking_at timestamptz NOT NULL, attempts integer NOT NULL DEFAULT 0,
+ next_attempt_at timestamptz NOT NULL DEFAULT now(), sent_at timestamptz,
+ UNIQUE(lead_id,booking_at)
+);
