@@ -1,3 +1,4 @@
+import {startTelegramPolling} from './telegram-polling.mjs';
 import {createTelegram} from './telegram.mjs';
 import { createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
@@ -110,6 +111,7 @@ export async function createCRM({records,json,origin,telegramTransport}){
   try{
    const raw=await rawBody(req);
    if(provider==='telegram'){
+    if(process.env.TELEGRAM_UPDATE_MODE==='polling')return textReply(res,410,'Polling enabled');
     const secret=process.env.TELEGRAM_WEBHOOK_SECRET;
     if(!secret||!process.env.TELEGRAM_BOT_TOKEN||!eq(req.headers['x-telegram-bot-api-secret-token'],secret))return textReply(res,403,'Forbidden');
     await telegram.handle(parse(raw));
@@ -149,5 +151,6 @@ export async function createCRM({records,json,origin,telegramTransport}){
   }catch{if(c)await c.query('ROLLBACK').catch(()=>{})}finally{c?.release();busy=false}
  },5000);timer.unref();
  const reminderTimer=setInterval(()=>void telegram.reminders().catch(()=>{}),60000);reminderTimer.unref();
- return {admin,webhook,ingest,telegram,close:async()=>{clearInterval(timer);clearInterval(reminderTimer);await pool.end()}};
+ const poller=process.env.TELEGRAM_UPDATE_MODE==='polling'&&process.env.TELEGRAM_BOT_TOKEN?startTelegramPolling({call:telegram.call,handle:telegram.handle}):null;
+ return {admin,webhook,ingest,telegram,close:async()=>{clearInterval(timer);clearInterval(reminderTimer);await poller?.stop();await pool.end()}};
 }
