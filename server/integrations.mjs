@@ -31,6 +31,19 @@ const records = new Map();
 const sessions = new Map();
 const authStates = new Map();
 const attempts = new Map();
+let crm = null;
+if (IS_HTTPS && ADMIN_PASSWORD.startsWith('replace-with-')) throw new Error('Replace the example administrator password');
+if (process.env.REQUIRE_CRM === '1' && !process.env.DATABASE_URL) throw new Error('DATABASE_URL required');
+if (process.env.DATABASE_URL) {
+  const { createCRM } = await import('./crm.mjs');
+  crm = await createCRM({ records, json, origin: PUBLIC_ORIGIN });
+}
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, until] of sessions) if (until < now) sessions.delete(id);
+  for (const [id, st] of authStates) if (st.until < now) authStates.delete(id);
+  for (const [id, a] of attempts) if (a.reset < now) attempts.delete(id);
+}, 60000).unref();
 
 function sealed(value) {
   const iv = randomBytes(12);
@@ -169,7 +182,7 @@ async function oauthCallback(req, res, provider, url) {
   const state = url.searchParams.get('state') || '';
   const pending = authStates.get(state);
   authStates.delete(state);
-  if (!pending || pending.provider !== provider || pending.until < Date.now() || !sessions.has(pending.session)) {
+  if (!pending || pending.provider !== provider || pending.until < Date.now() || !(sessions.get(pending.session) > Date.now())) {
     return outcome(res, provider, false, 'Время авторизации истекло.');
   }
   const code = url.searchParams.get('code');
@@ -278,9 +291,10 @@ async function route(req, res) {
     }
     const session = adminSession(req);
     if (!session) return json(res, 401, { error: 'Авторизуйтесь в панели управления' });
-    if (req.method === 'POST' || req.method === 'DELETE') {
+    if (['POST','DELETE','PATCH','PUT'].includes(req.method)) {
       if (!sameOrigin(req)) return json(res, 403, { error: 'Invalid origin' });
     }
+    if (pathname.startsWith('/api/crm/')) return crm ? await crm.admin(req,res,url) : json(res,503,{error:'База CRM ещё не настроена'});
     if (req.method === 'POST' && pathname === '/api/admin/logout') {
       sessions.delete(session);
       return json(res, 200, { ok: true }, { 'Set-Cookie': sessionCookie('', 0) });
@@ -322,6 +336,7 @@ async function route(req, res) {
 // OAuth callbacks come from providers and may not include the admin cookie.
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || '/', PUBLIC_ORIGIN);
+  if (url.pathname.startsWith('/api/webhooks/')) return crm ? await crm.webhook(req,res,url) : json(res,503,{error:'CRM unavailable'});
   const callback = url.pathname.match(/^\/api\/integrations\/(instagram|google)\/callback$/);
   if (req.method === 'GET' && callback) {
     try { return await oauthCallback(req, res, callback[1], url); }
@@ -329,4 +344,6 @@ const server = http.createServer(async (req, res) => {
   }
   return route(req, res);
 });
+server.requestTimeout = 30000;
+server.headersTimeout = 15000;
 server.listen(PORT, '127.0.0.1', () => console.log('ALBINA integrations API listening on 127.0.0.1:' + PORT));
