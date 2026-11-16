@@ -27,6 +27,7 @@ function appointment(value){
 }
 export function createTelegram({pool,ingest,origin,transport}){
  const adminId=()=>String(process.env.TELEGRAM_ADMIN_CHAT_ID||'');
+ const pending=new Map();
  const policy=()=>httpsURL(process.env.TELEGRAM_PRIVACY_URL);
  const booking=()=>httpsURL(process.env.DIKIDI_BOOKING_URL);
  async function call(method,payload){
@@ -123,7 +124,7 @@ export function createTelegram({pool,ingest,origin,transport}){
    await pool.query("UPDATE crm_bot_state SET consented_at=NULL,reminders=false,mode='',draft='{}' WHERE chat_id=$1",[chat]);
    return send(chat,'Согласие отозвано. Новые обращения не сохраняются, напоминания отключены. Для удаления ранее сохранённых данных обратитесь к Альбине.',back);
   }
-  if(data==='consent:no')return send(chat,'Без согласия я не сохраняю обращения. Можно связаться с Альбиной напрямую.',[[link('Сайт Альбины',origin+'/')]]);
+  if(data==='consent:no'){await pool.query("UPDATE crm_bot_state SET consented_at=NULL,reminders=false,mode='',draft='{}' WHERE chat_id=$1",[chat]);return send(chat,'Без согласия я не сохраняю обращения. Можно связаться с Альбиной напрямую.',[[link('Сайт Альбины',origin+'/')]]);}
   if(data==='consent:yes'){
    if(!policy())return consent(chat);
    await pool.query("INSERT INTO crm_bot_state(chat_id,consented_at) VALUES($1,now()) ON CONFLICT(chat_id) DO UPDATE SET consented_at=now(),updated_at=now()",[chat]);return clientMenu(chat);
@@ -158,19 +159,33 @@ export function createTelegram({pool,ingest,origin,transport}){
   const callback=update.callback_query,m=callback?.message||update.message,u=callback?.from||update.message?.from;
   if(!u||u.is_bot||m?.chat?.type!=='private'||String(m.chat.id)!==String(u.id)||update.update_id==null)return;
   const chat=String(u.id),data=clip(callback?.data,64),text=clip(update.message?.text||update.message?.caption,4000);
-  // Fail closed: only the configured owner's private chat receives admin data.
-  const lock=await pool.connect();
-  try{
-   await lock.query('SELECT pg_advisory_lock(hashtextextended($1,0))',['bot:'+chat]);
-   if((await lock.query('SELECT 1 FROM crm_bot_updates WHERE update_id=$1',[String(update.update_id)])).rowCount)return;
+  // Single Node process: queue each chat independently without occupying a DB
+  // connection while waiting for Telegram. Update dedup survives process restarts.
+  const previous=pending.get(chat)||Promise.resolve();
+  const job=previous.catch(()=>{}).then(async()=>{
+   if((await pool.query('SELECT 1 FROM crm_bot_updates WHERE update_id=$1',[String(update.update_id)])).rowCount)return;
    if(callback)await call('answerCallbackQuery',{callback_query_id:callback.id}).catch(()=>{});
    const state=await getState(chat);
-   if(adminId()&&chat===adminId())await adminAction(chat,data,text,state);
+   if(/^\d+$/.test(adminId())&&chat===adminId())await adminAction(chat,data,text,state);
    else await clientAction(chat,u,data,text,state,update.update_id);
-   await lock.query('INSERT INTO crm_bot_updates(update_id) VALUES($1) ON CONFLICT DO NOTHING',[String(update.update_id)]);
-  }finally{
-   try{await lock.query('SELECT pg_advisory_unlock(hashtextextended($1,0))',['bot:'+chat]);lock.release()}catch(e){lock.release(e)}
-  }
+   await pool.query('INSERT INTO crm_bot_updates(update_id) VALUES($1) ON CONFLICT DO NOTHING',[String(update.update_id)]);
+  });
+  pending.set(chat,job);
+  try{await job}finally{if(pending.get(chat)===job)pending.delete(chat)}
  }
- return {handle,call,send};
+ let reminderBusy=false;
+ async function reminders(){
+  if(reminderBusy||!process.env.TELEGRAM_BOT_TOKEN||!policy())return;
+  reminderBusy=true;
+  try{
+   // Only confirmed, local bookings and clients who opted in. Never infer a DIKIDI appointment.
+   await pool.query("INSERT INTO crm_bot_reminders(lead_id,booking_at) SELECT l.id,l.booking_at FROM crm_leads l JOIN crm_contacts c ON c.id=l.contact_id JOIN crm_bot_state s ON s.chat_id=c.external_id WHERE c.source='telegram' AND c.external_id ~ '^[0-9]+$' AND s.consented_at IS NOT NULL AND s.reminders AND l.status='booked' AND l.booking_at>now()+interval '1 hour' AND l.booking_at<=now()+interval '24 hours' ON CONFLICT DO NOTHING");
+   const r=(await pool.query("SELECT n.id,n.attempts,l.booking_at,c.external_id FROM crm_bot_reminders n JOIN crm_leads l ON l.id=n.lead_id JOIN crm_contacts c ON c.id=l.contact_id JOIN crm_bot_state s ON s.chat_id=c.external_id WHERE n.sent_at IS NULL AND n.attempts<8 AND n.next_attempt_at<=now() AND s.consented_at IS NOT NULL AND s.reminders AND c.source='telegram' AND c.external_id ~ '^[0-9]+$' AND c.external_id<>$1 AND l.status='booked' AND l.booking_at=n.booking_at AND l.booking_at>now()+interval '1 hour' AND l.booking_at<=now()+interval '24 hours' ORDER BY l.booking_at LIMIT 10",[adminId()])).rows;
+   for(const item of r){
+    try{await send(item.external_id,'Напоминание от Альбины: у вас запланирован визит '+date(item.booking_at)+'. Если планы изменились, свяжитесь с Альбиной.',[[btn('Отключить напоминания','remind:off')]]);await pool.query('UPDATE crm_bot_reminders SET sent_at=now() WHERE id=$1',[item.id])}
+    catch{await pool.query("UPDATE crm_bot_reminders SET attempts=attempts+1,next_attempt_at=now()+($2::int*interval '1 second') WHERE id=$1",[item.id,Math.min(1800,60*2**item.attempts)])}
+   }
+  }finally{reminderBusy=false}
+ }
+ return {handle,call,send,reminders};
 }
