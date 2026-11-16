@@ -22,6 +22,8 @@ jobs:
         run: |
           node --check server/integrations.mjs
           node --check admin/admin.js
+          node --check admin/crm.js
+          node --check server/crm.mjs
           node --check server/smoke.test.mjs
       - name: Run local API smoke tests
         run: node server/smoke.test.mjs
