@@ -30,12 +30,12 @@ export function createTelegram({pool,ingest,origin,transport}){
  const pending=new Map();
  const policy=()=>httpsURL(process.env.TELEGRAM_PRIVACY_URL);
  const booking=()=>httpsURL(process.env.DIKIDI_BOOKING_URL);
- async function call(method,payload){
+ async function call(method,payload,{signal,timeoutMs=15000}={}){
   if(transport)return transport(method,payload);
   if(!process.env.TELEGRAM_BOT_TOKEN)throw new Error('Telegram token missing');
-  const r=await fetch('https://api.telegram.org/bot'+process.env.TELEGRAM_BOT_TOKEN+'/'+method,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(8000)});
+  const r=await fetch('https://api.telegram.org/bot'+process.env.TELEGRAM_BOT_TOKEN+'/'+method,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:signal?AbortSignal.any([signal,AbortSignal.timeout(timeoutMs)]):AbortSignal.timeout(timeoutMs)});
   const j=await r.json().catch(()=>({}));
-  if(!r.ok||!j.ok)throw new Error('Telegram delivery failed');
+  if(!r.ok||!j.ok)throw Object.assign(new Error('Telegram delivery failed'),{telegramMethod:method,telegramCode:Number(j.error_code)||r.status});
   return j.result;
  }
  async function send(chat,text,rows=[]){return call('sendMessage',{chat_id:chat,text:clip(text,4000),...(rows.length?{reply_markup:{inline_keyboard:rows}}:{})})}
