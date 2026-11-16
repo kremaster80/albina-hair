@@ -1,3 +1,4 @@
+import {createTelegram} from './telegram.mjs';
 import { createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import pg from 'pg';
@@ -14,7 +15,7 @@ async function rawBody(req,max=1048576){
 const parse=raw=>{try{return JSON.parse(raw.toString('utf8'))}catch{throw Object.assign(new Error('Invalid JSON'),{status:400})}};
 const invalid=message=>Object.assign(new Error(message),{status:400});
 const textReply=(res,status,value)=>{res.writeHead(status,{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'});res.end(value)};
-export async function createCRM({records,json,origin}){
+export async function createCRM({records,json,origin,telegramTransport}){
  const pool=new Pool({connectionString:process.env.DATABASE_URL,max:5,connectionTimeoutMillis:5000,statement_timeout:12000});
  await pool.query(await readFile(new URL('./schema.sql',import.meta.url),'utf8'));
  async function ingest(e){
@@ -37,6 +38,7 @@ export async function createCRM({records,json,origin}){
     await c.query('COMMIT');return true;
    }catch(err){await c.query('ROLLBACK');throw err}finally{c.release()}
  }
+ const telegram=createTelegram({pool,ingest,origin,transport:telegramTransport});
  const rowsQuery="SELECT l.id,l.status,l.service,l.note,l.booking_at,l.created_at,l.updated_at,c.id AS contact_id,c.source,c.name,c.phone,c.external_id,(SELECT text FROM crm_messages WHERE lead_id=l.id ORDER BY id DESC LIMIT 1) AS last_message FROM crm_leads l JOIN crm_contacts c ON c.id=l.contact_id";
  async function admin(req,res,url){
   const p=url.pathname;
@@ -90,7 +92,7 @@ export async function createCRM({records,json,origin}){
     return json(res,r.rowCount?200:404,r.rowCount?{ok:true}:{error:'Заявка не найдена'});
    }
    if(client&&req.method==='DELETE'){
-    await pool.query('DELETE FROM crm_contacts WHERE id=$1',[client[1]]);return json(res,200,{ok:true});
+    await pool.query("WITH deleted AS (DELETE FROM crm_contacts WHERE id=$1 RETURNING source,external_id) DELETE FROM crm_bot_state WHERE chat_id IN (SELECT external_id FROM deleted WHERE source='telegram')",[client[1]]);return json(res,200,{ok:true});
    }
    return json(res,404,{error:'Not found'});
   }catch(e){return json(res,e.status|| (e.code==='23505'?409:503),{error:e.status?e.message:e.code==='23505'?'У клиента уже есть открытая заявка':'CRM временно недоступна'})}
@@ -110,9 +112,7 @@ export async function createCRM({records,json,origin}){
    if(provider==='telegram'){
     const secret=process.env.TELEGRAM_WEBHOOK_SECRET;
     if(!secret||!process.env.TELEGRAM_BOT_TOKEN||!eq(req.headers['x-telegram-bot-api-secret-token'],secret))return textReply(res,403,'Forbidden');
-    const b=parse(raw),m=b.message;
-    if(m?.chat?.type==='private'&&m.from&&!m.from.is_bot&&String(m.chat.id)!==String(process.env.TELEGRAM_ADMIN_CHAT_ID||'')&&m.text!=='/start'&&b.update_id!=null)
-     await ingest({source:'telegram',eventId:String(b.update_id),externalId:String(m.from.id),name:[m.from.first_name,m.from.last_name].filter(Boolean).join(' '),text:m.text||m.caption});
+    await telegram.handle(parse(raw));
    }else{
     const secret=secretFor(provider);
     if(!secret||!eq(req.headers['x-hub-signature-256'],'sha256='+createHmac('sha256',secret).update(raw).digest('hex')))return textReply(res,403,'Forbidden');
@@ -134,19 +134,20 @@ export async function createCRM({records,json,origin}){
  }
  let busy=false;
  const timer=setInterval(async()=>{
-  if(busy||!process.env.TELEGRAM_BOT_TOKEN||!process.env.TELEGRAM_ADMIN_CHAT_ID)return;
+  if(busy||!process.env.TELEGRAM_BOT_TOKEN||!/^\d+$/.test(process.env.TELEGRAM_ADMIN_CHAT_ID||''))return;
   busy=true;let c;
   try{
    c=await pool.connect();await c.query('BEGIN');
    const r=await c.query("SELECT n.id,n.lead_id,n.attempts,c.source FROM crm_notifications n JOIN crm_leads l ON l.id=n.lead_id JOIN crm_contacts c ON c.id=l.contact_id WHERE sent_at IS NULL AND next_attempt_at<=now() AND attempts<12 ORDER BY n.id FOR UPDATE OF n SKIP LOCKED LIMIT 1");
    if(r.rowCount){
     const n=r.rows[0];let ok=false;
-    try{const response=await fetch('https://api.telegram.org/bot'+process.env.TELEGRAM_BOT_TOKEN+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:process.env.TELEGRAM_ADMIN_CHAT_ID,text:'Новая заявка #'+n.lead_id+' · '+n.source,reply_markup:{inline_keyboard:[[{text:'Открыть Albina CRM',url:origin+'/admin/crm.html'}]]}}),signal:AbortSignal.timeout(8000)});ok=response.ok&&(await response.json()).ok===true}catch{}
+    try{const response=await fetch('https://api.telegram.org/bot'+process.env.TELEGRAM_BOT_TOKEN+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:process.env.TELEGRAM_ADMIN_CHAT_ID,text:'Новая заявка #'+n.lead_id+' · '+n.source,reply_markup:{inline_keyboard:[[{text:'Открыть заявку',callback_data:'lead:'+n.lead_id}],[{text:'Рабочий кабинет',url:origin+'/admin/'}]]}}),signal:AbortSignal.timeout(8000)});ok=response.ok&&(await response.json()).ok===true}catch{}
     if(ok)await c.query('UPDATE crm_notifications SET sent_at=now() WHERE id=$1',[n.id]);
     else await c.query("UPDATE crm_notifications SET attempts=attempts+1,next_attempt_at=now()+($2::int * interval '1 second') WHERE id=$1",[n.id,Math.min(3600,30*2**n.attempts)]);
    }
    await c.query('COMMIT');
   }catch{if(c)await c.query('ROLLBACK').catch(()=>{})}finally{c?.release();busy=false}
  },5000);timer.unref();
- return {admin,webhook,ingest,close:async()=>{clearInterval(timer);await pool.end()}};
+ const reminderTimer=setInterval(()=>void telegram.reminders().catch(()=>{}),60000);reminderTimer.unref();
+ return {admin,webhook,ingest,telegram,close:async()=>{clearInterval(timer);clearInterval(reminderTimer);await pool.end()}};
 }
