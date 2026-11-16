@@ -11,3 +11,18 @@ dialog{border:0;border-radius:0;box-shadow:0 30px 110px #160c0755;padding:0;max-
 @media(max-width:920px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.intro{grid-template-columns:1fr}.intro-side{max-width:650px}.summary{gap:20px}.privacy{gap:25px}}
 @media(max-width:610px){.header{height:75px}.brand{font-size:33px}.header-label{display:none}.intro{padding-top:66px;padding-bottom:52px}.intro h1{font-size:clamp(55px,12vw,72px)}.lead{font-size:11px}.intro-side{margin-top:15px}.summary{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding-top:25px;padding-bottom:25px}.summary>div{padding-right:4px}.summary strong{font-size:34px}.summary span{font-size:8px;line-height:1.5}.summary .button{grid-column:1/-1;margin-top:12px}.connections{padding-top:65px;padding-bottom:75px}.section-heading{display:block}.section-heading>p{max-width:450px;margin-top:18px}.cards{grid-template-columns:1fr}.service-card{min-height:220px;padding:24px}.service-card h3{margin-top:19px}.privacy{grid-template-columns:1fr;gap:15px;padding-top:60px;padding-bottom:60px}.login-card{padding:32px 24px}dialog h2{font-size:43px}.dialog-inner{padding-top:24px;padding-bottom:28px}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* Self-service instructions, readable on narrow screens. */
+.connection-guide{border-top:1px solid var(--line);margin-top:18px;padding-top:16px}
+.connection-guide h3{font:600 20px/1.25 var(--display);margin:0 0 12px}
+.dialog-note .guide-steps{font-size:13px;line-height:1.65;padding-left:20px;margin:0 0 14px}
+.guide-steps li{padding-left:3px;margin-bottom:9px}
+.guide-steps li::marker{font-weight:800;color:var(--accent)}
+.dialog-note .guide-hint{font-size:12px;line-height:1.6;margin:12px 0;color:#6e5545}
+.guide-links{display:flex;flex-wrap:wrap;gap:8px}
+.guide-links .button{min-height:40px;padding:8px 12px;text-align:center;white-space:normal;font-size:11px}
+.status.pending_setup{color:#9d723f}.status.pending_setup::before{background:#c4934d}
+.button:disabled{cursor:not-allowed;background:#eee8df;color:#746c63;border-color:var(--line);opacity:1}
+#dialog-actions>form{margin-top:18px}
+#dialog-actions>form .button{width:100%}
+@media(max-width:610px){.guide-links .button{width:100%}.dialog-note{padding:15px}.dialog-note .guide-steps{font-size:12px}.card-bottom button{text-align:right}}
