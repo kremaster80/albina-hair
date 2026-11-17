@@ -4,6 +4,7 @@
  * Run behind HTTPS/Nginx; see INTEGRATIONS.md.
  */
 import http from 'node:http';
+import {unifiedConfigured,unifiedAuthorizeURL,exchangeUnified} from './instagram-unified.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
@@ -126,7 +127,7 @@ function callbackURL(provider) {
   return PUBLIC_ORIGIN + '/api/integrations/' + provider + '/callback';
 }
 function configured(provider) {
-  if (provider === 'instagram') return Boolean(process.env.INSTAGRAM_CLIENT_ID && process.env.INSTAGRAM_CLIENT_SECRET);
+  if (provider === 'instagram') return process.env.INSTAGRAM_LOGIN_MODE==='unified' ? unifiedConfigured() : Boolean(process.env.INSTAGRAM_CLIENT_ID && process.env.INSTAGRAM_CLIENT_SECRET);
   if (provider === 'google') return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
   if (provider === 'whatsapp') return Boolean(process.env.META_APP_ID && process.env.META_APP_SECRET && process.env.META_CONFIG_ID);
   if (provider === 'dikidi') return true;
@@ -161,7 +162,9 @@ function oauthStart(req, res, provider, session) {
   const state = randomBytes(24).toString('base64url');
   authStates.set(state, { provider, session, until: Date.now() + 10 * 60 * 1000 });
   let url;
-  if (provider === 'instagram') {
+  if (provider === 'instagram' && process.env.INSTAGRAM_LOGIN_MODE==='unified') {
+    url=unifiedAuthorizeURL({appId:process.env.META_APP_ID,configId:process.env.INSTAGRAM_CONFIG_ID,redirectUri:callbackURL(provider),state});
+  } else if (provider === 'instagram') {
     url = new URL('https://www.instagram.com/oauth/authorize');
     url.searchParams.set('client_id', process.env.INSTAGRAM_CLIENT_ID);
     url.searchParams.set('scope', 'instagram_business_basic,instagram_business_manage_messages');
@@ -188,7 +191,11 @@ async function oauthCallback(req, res, provider, url) {
   const code = url.searchParams.get('code');
   if (!code || url.searchParams.has('error')) return outcome(res, provider, false, 'Доступ не предоставлен.');
   try {
-    if (provider === 'instagram') {
+    if (provider === 'instagram' && process.env.INSTAGRAM_LOGIN_MODE==='unified') {
+      const record=await exchangeUnified({appId:process.env.META_APP_ID,appSecret:process.env.META_APP_SECRET,redirectUri:callbackURL(provider),code,remoteJSON});
+      if (!(sessions.get(pending.session)>Date.now())) return outcome(res,provider,false,'Время авторизации истекло.');
+      records.set(provider,record);
+    } else if (provider === 'instagram') {
       const short = await remoteJSON('https://api.instagram.com/oauth/access_token', {
         method: 'POST', body: new URLSearchParams({
           client_id: process.env.INSTAGRAM_CLIENT_ID,
@@ -227,8 +234,8 @@ async function oauthCallback(req, res, provider, url) {
     }
     persist();
     outcome(res, provider, true, 'OAuth выполнен, импорт заявок настраивается отдельно.');
-  } catch {
-    outcome(res, provider, false, 'Проверьте настройки приложения, доступы и redirect URL.');
+  } catch (error) {
+    outcome(res, provider, false, error.publicMessage || 'Проверьте настройки приложения, доступы и redirect URL.');
   }
 }
 async function whatsappComplete(req, res) {

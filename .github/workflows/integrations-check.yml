@@ -36,6 +36,7 @@ jobs:
       - name: Check Node syntax
         run: |
           node --check server/integrations.mjs
+          node --test server/instagram-unified.test.mjs
           node --check admin/admin.js
           node --check admin/crm.js
           node --check server/crm.mjs
