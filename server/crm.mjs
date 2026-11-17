@@ -98,7 +98,7 @@ export async function createCRM({records,json,origin,telegramTransport}){
    return json(res,404,{error:'Not found'});
   }catch(e){return json(res,e.status|| (e.code==='23505'?409:503),{error:e.status?e.message:e.code==='23505'?'У клиента уже есть открытая заявка':'CRM временно недоступна'})}
  }
- function secretFor(provider){return provider==='instagram'?process.env.INSTAGRAM_CLIENT_SECRET:process.env.META_APP_SECRET}
+ function secretFor(provider){return provider==='instagram'&&process.env.INSTAGRAM_LOGIN_MODE!=='unified'?process.env.INSTAGRAM_CLIENT_SECRET:process.env.META_APP_SECRET}
  async function webhook(req,res,url){
   const provider=url.pathname.split('/').pop();
   if(!['instagram','whatsapp','telegram'].includes(provider))return textReply(res,404,'Not found');
