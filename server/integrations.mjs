@@ -4,6 +4,7 @@
  * Run behind HTTPS/Nginx; see INTEGRATIONS.md.
  */
 import http from 'node:http';
+import {exchangeWhatsApp,subscribeWhatsApp} from './whatsapp-signup.mjs';
 import {unifiedConfigured,unifiedAuthorizeURL,exchangeUnified} from './instagram-unified.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -239,35 +240,17 @@ async function oauthCallback(req, res, provider, url) {
   }
 }
 async function whatsappComplete(req, res) {
-  if (!configured('whatsapp')) return json(res, 409, { error: 'Meta App is not configured' });
-  const body = await readJSON(req);
-  const code = String(body.code || '');
-  const wabaId = String(body.wabaId || '');
-  const phoneId = String(body.phoneId || '');
-  if (code.length < 12 || code.length > 4096 || !/^\d{5,30}$/.test(wabaId) ||
-      !/^\d{5,30}$/.test(phoneId)) {
-    return json(res, 400, { error: 'Meta registration did not return valid business assets' });
-  }
+  if (!configured('whatsapp')) return json(res,409,{error:'Подключение Meta пока не настроено.'});
+  const body=await readJSON(req);
   try {
-    const tokenURL = new URL('https://graph.facebook.com/v25.0/oauth/access_token');
-    tokenURL.search = new URLSearchParams({
-      client_id: process.env.META_APP_ID,
-      client_secret: process.env.META_APP_SECRET,
-      code
-    }).toString();
-    const token = await remoteJSON(tokenURL);
-    if (!token.access_token) throw new Error('Missing token');
-    const phonesURL = new URL('https://graph.facebook.com/v25.0/' + wabaId + '/phone_numbers');
-    phonesURL.search = new URLSearchParams({ fields: 'id,display_phone_number', access_token: token.access_token }).toString();
-    const phones = await remoteJSON(phonesURL);
-    const selected = Array.isArray(phones.data) && phones.data.find(p => String(p.id) === phoneId);
-    if (!selected) throw new Error('WABA phone not verified');
-    records.set('whatsapp', { state: 'authorized', accessToken: token.access_token, wabaId,
-      phoneId, account: selected.display_phone_number || phoneId, connectedAt: new Date().toISOString() });
-    persist();
-    json(res, 200, { ok: true, message: 'Meta Business account verified; webhooks still require setup' });
-  } catch {
-    json(res, 400, { error: 'Meta API could not confirm this WhatsApp Business account' });
+    const record=await exchangeWhatsApp({appId:process.env.META_APP_ID,appSecret:process.env.META_APP_SECRET,code:body.code,wabaId:body.wabaId,phoneId:body.phoneId||'',mode:body.mode||'standard',remoteJSON});
+    records.set('whatsapp',record);persist();
+    // Preserve the verified credential even if app-level webhook setup is not ready.
+    try {await subscribeWhatsApp(record,remoteJSON);record.webhookSubscribed=true;persist();}
+    catch {return json(res,200,{ok:true,webhookSubscribed:false,message:'Номер подтверждён. Подписка Webhook пока не подтверждена. Обратитесь к разработчику.'});}
+    return json(res,200,{ok:true,webhookSubscribed:true,message:'Номер подтверждён, подписка создана. Проверьте получение тестового сообщения.'});
+  } catch(error) {
+    return json(res,400,{error:error.publicMessage||'Meta не подтвердила доступ к WhatsApp. Проверьте права и конфигурацию.'});
   }
 }
 
