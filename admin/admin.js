@@ -140,6 +140,9 @@
   let metaAssets = null;
   let metaSubmitting = false;
   let metaConfig = null;
+  let metaActive = false;
+  let metaTimer = null;
+  let metaRun = 0;
 
   function showPage(id) {
     ['login','dashboard','unavailable'].forEach(section => $(section).hidden = section !== id);
@@ -335,7 +338,7 @@
       const existing = document.querySelector('script[data-meta-sdk]');
       if (existing) { reject(new Error('Meta SDK ещё загружается. Повторите попытку.')); return; }
       window.fbAsyncInit = () => {
-        window.FB.init({appId,autoLogAppEvents:false,xfbml:false,version:'v25.0'});
+        window.FB.init({appId,autoLogAppEvents:false,xfbml:false,version:'v27.0'});
         resolve();
       };
       const script = document.createElement('script');
@@ -346,33 +349,39 @@
     });
   }
   async function completeMetaWhenReady() {
-    if (!metaCode || !metaAssets || metaSubmitting) return;
+    if (!metaActive || !metaCode || !metaAssets || metaSubmitting) return;
+    clearTimeout(metaTimer);
     metaSubmitting = true;
     feedback('Проверяем бизнес-аккаунт WhatsApp через Meta…');
     try {
-      await api('/api/integrations/whatsapp/complete',{
-        method:'POST', body:JSON.stringify({code:metaCode,wabaId:metaAssets.wabaId,phoneId:metaAssets.phoneId})
+      const result=await api('/api/integrations/whatsapp/complete',{
+        method:'POST', body:JSON.stringify({code:metaCode,...metaAssets})
       });
-      feedback('WhatsApp Business авторизован. Для поступления заявок ещё нужна настройка вебхуков.');
+      feedback(result.message||'Номер подтверждён. Проверьте тестовое сообщение.');
       await refresh();
       $('disconnect').hidden = false;
     } catch(error) { feedback(error.message,true); }
-    finally { metaCode = null; metaAssets = null; metaSubmitting = false; }
+    finally { metaCode = null; metaAssets = null; metaSubmitting = false; metaActive=false; }
   }
   window.addEventListener('message',event => {
     if (!['https://www.facebook.com','https://web.facebook.com','https://business.facebook.com'].includes(event.origin)) return;
     let body;
     try { body = typeof event.data === 'string' ? JSON.parse(event.data) : event.data; }
     catch { return; }
-    if (body?.type !== 'WA_EMBEDDED_SIGNUP') return;
-    if (body.event === 'FINISH' && body.data) {
-      const wabaId = String(body.data.waba_id || '');
-      const phoneId = String(body.data.phone_number_id || '');
-      if (/^\d+$/.test(wabaId) && /^\d+$/.test(phoneId)) {
-        metaAssets = {wabaId,phoneId};
+    if (!metaActive || metaSubmitting || body?.type !== 'WA_EMBEDDED_SIGNUP') return;
+    if (['FINISH','FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING'].includes(body.event) && body.data) {
+      const wabaId=String(body.data.waba_id||'');
+      const phoneId=String(body.data.phone_number_id||'');
+      const mode=body.event==='FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING'?'coexistence':'standard';
+      if (/^\d{5,30}$/.test(wabaId)&&(/^\d{5,30}$/.test(phoneId)||(!phoneId&&mode==='coexistence'))) {
+        metaAssets={wabaId,phoneId,mode};
         void completeMetaWhenReady();
-      }
+      } else feedback('Meta не передала необходимые сведения о номере.',true);
+    } else if (body.event==='FINISH_ONLY_WABA') {
+      feedback('Выбран аккаунт без номера. Повторите подключение с нужным номером.',true);
+      metaActive=false;clearTimeout(metaTimer);metaCode=null;metaAssets=null;
     } else if (body.event === 'CANCEL' || body.event === 'ERROR') {
+      metaActive=false;clearTimeout(metaTimer);metaCode=null;metaAssets=null;
       feedback('Регистрация в Meta не завершена.',true);
     }
   });
@@ -387,15 +396,19 @@
   function startMetaSignup() {
     // FB.login must run directly in a user click; awaiting a fetch here would block the popup.
     if (!metaConfig || !window.FB) return feedback('Meta SDK ещё не готова.',true);
-    metaCode = null; metaAssets = null; metaSubmitting = false;
+    if(metaActive||metaSubmitting)return feedback('Подключение уже открыто. Завершите его в окне Meta.');
+    metaCode = null; metaAssets = null; metaSubmitting = false;metaActive=true;
+    const run=++metaRun;
+    metaTimer=setTimeout(()=>{if(metaRun===run&&metaActive&&!metaSubmitting){metaActive=false;metaCode=null;metaAssets=null;feedback('Время подключения истекло. Повторите попытку.',true);}},600000);
     window.FB.login(response => {
+      if(!metaActive||metaRun!==run)return;
       const code = response?.authResponse?.code;
-      if (!code) return feedback('Meta не предоставила код авторизации. Повторите подключение.',true);
+      if (!code) {metaActive=false;clearTimeout(metaTimer);metaAssets=null;return feedback('Meta не предоставила код авторизации. Повторите подключение.',true);}
       metaCode = code;
       feedback('Авторизация Meta выполнена. Ожидаем сведения о WhatsApp Business...');
       void completeMetaWhenReady();
     },{config_id:metaConfig.configurationId,response_type:'code',override_default_response_type:true,
-      extras:{setup:{}}});
+      extras:{setup:{},featureType:'whatsapp_business_app_onboarding'}});
   }
 
   window.addEventListener('message',event => {
