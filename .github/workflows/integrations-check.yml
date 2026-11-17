@@ -37,6 +37,7 @@ jobs:
         run: |
           node --check server/integrations.mjs
           node --test server/instagram-unified.test.mjs
+          node --test server/whatsapp-signup.test.mjs
           node --check admin/admin.js
           node --check admin/crm.js
           node --check server/crm.mjs
