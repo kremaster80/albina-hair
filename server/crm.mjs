@@ -1,3 +1,4 @@
+import {startInstagramPolling,pollingAccount} from './instagram-polling.mjs';
 import {startTelegramPolling} from './telegram-polling.mjs';
 import {createTelegram} from './telegram.mjs';
 import { createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
@@ -122,6 +123,8 @@ export async function createCRM({records,json,origin,telegramTransport}){
     if(account&&account.state==='authorized'){
      for(const entry of Array.isArray(b.entry)?b.entry:[]){
       if(provider==='instagram'&&b.object==='instagram'&&String(entry.id)===String(account.userId)){
+        // Polling and Webhook IDs are not proven equivalent. Use one ingest path.
+        if(process.env.INSTAGRAM_UPDATE_MODE==='polling'&&pollingAccount(account))continue;
        for(const m of entry.messaging||[]){if(m.message?.mid&&!m.message.is_echo&&m.sender?.id&&String(m.sender.id)!==String(account.userId))await ingest({source:provider,eventId:m.message.mid,externalId:String(m.sender.id),text:m.message.text})}
       }else if(provider==='whatsapp'&&b.object==='whatsapp_business_account'&&String(entry.id)===String(account.wabaId)){
        for(const change of entry.changes||[]){const v=change.value;if(String(v?.metadata?.phone_number_id)!==String(account.phoneId))continue;
@@ -152,5 +155,6 @@ export async function createCRM({records,json,origin,telegramTransport}){
  },5000);timer.unref();
  const reminderTimer=setInterval(()=>void telegram.reminders().catch(()=>{}),60000);reminderTimer.unref();
  const poller=process.env.TELEGRAM_UPDATE_MODE==='polling'&&process.env.TELEGRAM_BOT_TOKEN?startTelegramPolling({call:telegram.call,handle:telegram.handle}):null;
- return {admin,webhook,ingest,telegram,close:async()=>{clearInterval(timer);clearInterval(reminderTimer);await poller?.stop();await pool.end()}};
+ const instagramPoller=process.env.INSTAGRAM_UPDATE_MODE==='polling'?startInstagramPolling({records,pool,ingest}):null;
+ return {admin,webhook,ingest,telegram,close:async()=>{clearInterval(timer);clearInterval(reminderTimer);await poller?.stop();await instagramPoller?.stop();await pool.end()}};
 }
