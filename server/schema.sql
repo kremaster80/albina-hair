@@ -53,3 +53,7 @@ CREATE TABLE IF NOT EXISTS crm_bot_reminders (
  next_attempt_at timestamptz NOT NULL DEFAULT now(), sent_at timestamptz,
  UNIQUE(lead_id,booking_at)
 );
+
+CREATE TABLE IF NOT EXISTS crm_instagram_poll_state (
+ connection_key text PRIMARY KEY, started_at timestamptz NOT NULL, watermark timestamptz NOT NULL
+);
