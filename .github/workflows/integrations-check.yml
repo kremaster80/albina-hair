@@ -5,6 +5,10 @@ on:
     paths:
       - 'admin/**'
       - 'server/**'
+      - 'index.html'
+      - 'script.js'
+      - 'config.js'
+      - 'styles.css'
       - '.github/workflows/integrations-check.yml'
   push:
     branches:
@@ -36,6 +40,9 @@ jobs:
       - name: Check Node syntax
         run: |
           node --check server/integrations.mjs
+          node --check script.js
+          node --check config.js
+          node --test server/site-booking.test.mjs
           node --test server/instagram-unified.test.mjs
           node --test server/instagram-polling.test.mjs
           node --test server/dikidi-email.test.mjs

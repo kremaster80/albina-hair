@@ -104,7 +104,8 @@
 
   // Контакты добавляются только из явно заполненного config.js.
   const contactsContainer = $('#contact-links');
-  const phone = String(config.phone || '').replace(/\D/g, '');
+  const dikidiBookingUrl = String(config.dikidiBookingUrl || '').trim();
+  const validDikidiBooking = /^https:\/\/dikidi\.net\/\d+\/?$/.test(dikidiBookingUrl);
   const instagram = String(config.instagram || '').trim();
   const telegram = String(config.telegram || '').replace(/^@/, '').trim();
   const address = String(config.address || '').trim();
@@ -116,7 +117,9 @@
     link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer';
     contactsContainer.appendChild(link);
   }
-  if (phone.length >= 10 && phone.length <= 15) contactLink('WhatsApp', `https://wa.me/${phone}`);
+  if (validDikidiBooking) contactLink('Запись DIKIDI', dikidiBookingUrl);
+  const bookingLink = $('#dikidi-booking-link');
+  if (bookingLink && validDikidiBooking) bookingLink.href = dikidiBookingUrl;
   if (validTelegram) contactLink('Telegram', `https://t.me/${telegram}`);
   if (validInstagram) contactLink('Instagram', instagram);
   if (address) {
@@ -131,15 +134,10 @@
     contactsContainer.appendChild(note);
   }
 
-  // Нет сервера, сбора персональных данных или фиктивной "отправки".
-  // С реальным WhatsApp сообщение откроется в мессенджере, без него — копируется.
+  // DIKIDI handles scheduling externally. The optional questionnaire stays local
+  // and is copied only when a visitor explicitly requests it.
   const form = $('#booking-form');
   const feedback = $('#form-feedback');
-  const formHelp = $('#form-help');
-  if (phone.length >= 10 && phone.length <= 15) {
-    $('#form-button-text').textContent = 'Перейти в WhatsApp';
-    formHelp.textContent = 'Откроем WhatsApp с готовым сообщением. Отправка произойдёт только после вашего подтверждения в мессенджере.';
-  }
   async function copyToClipboard(value) {
     try { await navigator.clipboard.writeText(value); return true; }
     catch {
@@ -167,22 +165,16 @@
     ].filter(([, value]) => value).map(([title, value]) => `${title}: ${value}`);
     const message = [
       `Здравствуйте, Альбина! Меня зовут ${name.value.trim()}.`,
-      `Хочу записаться: ${service.value}.`,
+      `Интересует услуга: ${service.value}.`,
       ...(questionnaire.length ? ['', 'Немного обо мне:', ...questionnaire] : []),
       ...(note ? ['', `Мои пожелания: ${note}`] : []),
       '',
-      'Подскажите, пожалуйста, свободное время.'
+      'Анкета подготовлена перед визитом.'
     ].join('\n');
     feedback.hidden = false;
     feedback.textContent = message;
-    if (phone.length >= 10 && phone.length <= 15) {
-      const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-      window.open(url, '_blank', 'noopener,noreferrer');
-      showToast('Открываем WhatsApp с текстом записи');
-    } else {
-      const copied = await copyToClipboard(message);
-      showToast(copied ? 'Текст скопирован — можно отправить мастеру' : 'Текст готов — скопируйте его из блока');
-    }
+    const copied = await copyToClipboard(message);
+    showToast(copied ? 'Анкета скопирована — отправьте её Альбине в Telegram' : 'Анкета готова — скопируйте её из блока');
   });
 
   // Instagram Reels появляются только при добавлении реальных ссылок в config.js.

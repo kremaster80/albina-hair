@@ -33,7 +33,7 @@
       <button class="menu-toggle" type="button" aria-label="Открыть меню" aria-controls="mobile-nav" aria-expanded="false"><span></span><span></span></button>
     </div>
     <nav id="mobile-nav" class="mobile-nav" aria-label="Мобильное меню" hidden>
-      <a href="#about">Обо мне</a><a href="#portfolio">Портфолио</a><a href="#services">Услуги и цены</a><a href="#booking">Связаться</a>
+      <a href="#about">Обо мне</a><a href="#portfolio">Портфолио</a><a href="#services">Услуги и цены</a><a href="#booking">Записаться</a>
     </nav>
   </header>
 
@@ -175,7 +175,12 @@
       <div class="wrap booking-grid">
         <div class="booking-copy reveal"><p class="eyebrow"><span class="eyebrow-line"></span> ДАВАЙТЕ ЗНАКОМИТЬСЯ</p><h2 class="display-heading">Ваш новый образ<br>начинается <em>с диалога.</em></h2><p>Расскажите, что хочется изменить. Помогу выбрать стрижку, оттенок или уход, который будет именно вашим.</p><div class="contact-links" id="contact-links" aria-label="Контакты мастера"></div></div>
         <div class="booking-form-wrap reveal">
-          <div class="form-heading"><span>НАЧНЁМ СО ЗНАКОМСТВА</span></div>
+          <div class="direct-booking">
+            <div class="form-heading"><span>ОНЛАЙН-ЗАПИСЬ</span></div>
+            <p class="direct-booking-copy">Выберите услугу, дату и удобное время в DIKIDI.</p>
+            <a class="btn btn-dark direct-booking-link" id="dikidi-booking-link" href="https://dikidi.net/2184654" target="_blank" rel="noopener noreferrer">Записаться через DIKIDI</a>
+          </div>
+          <div class="form-heading"><span>АНКЕТА ПЕРЕД ВИЗИТОМ (ПО ЖЕЛАНИЮ)</span></div>
           <form id="booking-form" novalidate>
             <div class="field"><label for="client-name">Как к вам обращаться?</label><input type="text" id="client-name" name="name" autocomplete="name" maxlength="80" placeholder="Ваше имя" required></div>
             <div class="field"><label for="client-service">Какая услуга интересует?</label><select id="client-service" name="service" required><option value="">Выберите услугу</option><option>Женская стрижка</option><option>Стрижка чёлки</option><option>Тонирование</option><option>Окрашивание тон в тон</option><option>Рельефное окрашивание / мелирование</option><option>AirTouch</option><option>Уход Davines</option><option>Пилинг кожи головы</option><option>Консультация</option><option>Пока не знаю — нужна консультация</option></select></div>
@@ -220,8 +225,8 @@
               </div>
             </fieldset>
             <div class="field"><label for="client-comment">Ваше пожелание <span>(необязательно)</span></label><textarea id="client-comment" name="comment" maxlength="500" placeholder="Например, хочу освежить цвет и сохранить длину" rows="3"></textarea></div>
-            <button class="btn btn-dark form-button" type="submit"><span id="form-button-text">Подготовить сообщение</span></button>
-            <p class="form-help" id="form-help">Сообщение формируется только в вашем браузере. Данные никуда не отправляются без вашего действия.</p>
+            <button class="btn btn-dark form-button" type="submit"><span id="form-button-text">Скопировать анкету</span></button>
+            <p class="form-help" id="form-help">Анкета не отправляется в DIKIDI автоматически. По желанию скопируйте её и отправьте Альбине в Telegram.</p>
             <div class="form-feedback" id="form-feedback" role="status" aria-live="polite" hidden></div>
           </form>
         </div>
