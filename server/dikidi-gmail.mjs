@@ -17,8 +17,10 @@ export function trustedDikidiMail(parsed,expectedFrom){
  if(!Array.isArray(from)||from.length!==1||String(from[0]?.address||'').toLowerCase()!==expectedFrom)return false;
  const domain=expectedFrom.split('@')[1];
  const header=(parsed.headerLines||[]).find(h=>h.key==='authentication-results');
- if(!header||!/^Authentication-Results:\s*mx\.google\.com\s*;/i.test(header.line))return false;
- const match=/\bdkim=pass\b[^;\r\n]*?\bheader\.(?:i|d)=@?([a-z0-9.-]+)/i.exec(header.line);
+ if(!header)return false;
+ const auth=header.line.replace(/\r?\n[ \t]*/g,' ');
+ if(!/^Authentication-Results:\s*mx\.google\.com\s*;/i.test(auth))return false;
+ const match=/\bdkim=pass\b[^;]*?\bheader\.(?:i|d)=@?([a-z0-9.-]+)/i.exec(auth);
  if(!match)return false;
  const signer=match[1].toLowerCase();
  return signer===domain||signer.endsWith('.'+domain);
@@ -112,6 +114,6 @@ export async function startGmailMailboxPolling({pool,ingest}){
   pool,ingest,config,
   imapFactory:()=>new ImapFlow({host:GMAIL,port:993,secure:true,auth:{user:config.user,pass:config.password},
     logger:false,connectionTimeout:12000,greetingTimeout:12000,socketTimeout:20000}),
-  parseMime:source=>simpleParser(source,{skipHtmlToText:true,skipTextToHtml:true})
+  parseMime:source=>simpleParser(source,{skipTextToHtml:true})
  });
 }
