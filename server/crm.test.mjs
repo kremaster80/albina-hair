@@ -34,6 +34,16 @@ try{
  assert.equal((await send('instagram',{...ig,entry:[{...ig.entry[0],id:'999'}]},'test_ig_secret')).status,200);
  const wa={object:'whatsapp_business_account',entry:[{id:'222',changes:[{value:{metadata:{phone_number_id:'333'},contacts:[{wa_id:'79000000000',profile:{name:'Клиент тест'}}],messages:[{id:'wa-1',from:'79000000000',text:{body:'Окрашивание'}}]}}]}]};
  assert.equal((await send('whatsapp',wa,'test_wa_secret')).status,200);
+ process.env.TELEGRAM_PRIVACY_URL='';
+ process.env.DIKIDI_BOOKING_URL='https://dikidi.net/ru/booking/test';
+ const bookingOnly={update_id:2,message:{chat:{type:'private',id:5555},from:{id:5555,first_name:'Test'},text:'/start'}};
+ assert.equal((await send('telegram',bookingOnly,'test_telegram_secret')).status,200);
+ const bookingReply=sent.filter(x=>x.method==='sendMessage').at(-1).payload;
+ assert.ok(bookingReply.text.includes('Онлайн-запись'));
+ assert.equal(bookingReply.reply_markup.inline_keyboard[0][0].url,process.env.DIKIDI_BOOKING_URL);
+ assert.equal((await get('summary')).contacts,2); // No client data collected without consent.
+ process.env.TELEGRAM_PRIVACY_URL='https://example.com/privacy';
+ delete process.env.DIKIDI_BOOKING_URL;
  const tg={update_id:3,message:{chat:{type:'private',id:3333},from:{id:3333,first_name:'Test'},text:'Уход'}};
  assert.equal((await send('telegram',tg,'bad')).status,403);
  assert.equal((await send('telegram',tg,'test_telegram_secret')).status,200);

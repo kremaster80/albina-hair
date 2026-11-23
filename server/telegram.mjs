@@ -45,7 +45,9 @@ export function createTelegram({pool,ingest,origin,transport}){
  async function adminMenu(chat){await mode(chat);return send(chat,'ALBINA · рабочий кабинет\n\nВыберите раздел.',[[btn('Новые заявки','list:new'),btn('Все заявки','list:all')],[btn('Клиенты','clients:0'),btn('Поиск','search')],[btn('Записи','bookings'),btn('Статистика','stats')],[link('Подключения и CRM',origin+'/admin/')]])}
  async function clientMenu(chat){await mode(chat);return send(chat,'Здравствуйте! Я помощник Альбины.\nВыберите, чем могу помочь.',[[btn('Заполнить анкету','questionnaire')],[btn('Написать Альбине','write')],...(booking()?[[link('Онлайн-запись DIKIDI',booking())]]:[]),[btn('Напоминания','reminders')],[btn('Условия обработки данных','privacy')]])}
  async function consent(chat){
-  if(!policy())return send(chat,'Приём обращений пока не настроен. Свяжитесь с Альбиной напрямую через её сайт.',[[link('Сайт Альбины',origin+'/')]]);
+  if(!policy())return booking()
+   ? send(chat,'Онлайн-запись к Альбине доступна по кнопке ниже. Приём обращений через бота пока не настроен.',[[link('Записаться через DIKIDI',booking())]])
+   : send(chat,'Приём обращений пока не настроен. Свяжитесь с Альбиной напрямую через её сайт.',[[link('Сайт Альбины',origin+'/')]]);
   return send(chat,'Для отправки заявки в CRM требуется ваше согласие на обработку данных. Ознакомьтесь с политикой конфиденциальности. Согласие можно отозвать через /privacy.',[[link('Политика конфиденциальности',policy())],[btn('Согласен(на)','consent:yes')],[btn('Не согласен(на)','consent:no')]]);
  }
  const select="SELECT l.id,l.contact_id,l.status,l.service,l.note,l.booking_at,c.name,c.phone,c.source,c.external_id FROM crm_leads l JOIN crm_contacts c ON c.id=l.contact_id";
