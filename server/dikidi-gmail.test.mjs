@@ -26,7 +26,7 @@ test('infers Moscow time from Gmail receipt including year boundary',()=>{
  const booking=parseDikidiBookingEmail(original);
  assert.equal(inferMoscowBookingAt(booking,'2026-11-23T13:00:00Z').toISOString(),'2026-11-23T14:00:00.000Z');
  const jan=parseDikidiBookingEmail(original.replace('23.11','01.01'));
- assert.equal(inferMoscowBookingAt(jan,'2026-12-30T10:00:00Z').toISOString(),'2026-12-31T21:00:00.000Z');
+ assert.equal(inferMoscowBookingAt(jan,'2026-12-30T10:00:00Z').toISOString(),'2027-01-01T14:00:00.000Z');
  const feb=parseDikidiBookingEmail(original.replace('23.11','29.02'));
  assert.equal(inferMoscowBookingAt(feb,'2026-02-20T10:00:00Z'),null);
 });
