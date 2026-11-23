@@ -10,8 +10,8 @@ const validDayMonth = (day, month) => {
 };
 const durationFrom = value => {
   const raw=normalize(value).toLowerCase();
-  const hour=raw.match(/(\d{1,2})\s*час(?:а|ов)?\b/u);
-  const minute=raw.match(/(\d{1,2})\s*минут(?:а|ы)?\b/u);
+  const hour=raw.match(/(\d{1,2})\s*час(?:а|ов)?(?=\s|$)/u);
+  const minute=raw.match(/(\d{1,2})\s*минут(?:а|ы)?(?=\s|$)/u);
   if (!hour && !minute) return null;
   const h=hour?Number(hour[1]):0,m=minute?Number(minute[1]):0;
   if (h>23 || m>59 || (h===0 && m===0)) return null;
