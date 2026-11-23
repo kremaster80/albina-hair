@@ -38,6 +38,8 @@ jobs:
           node --check server/integrations.mjs
           node --test server/instagram-unified.test.mjs
           node --test server/instagram-polling.test.mjs
+          node --test server/dikidi-email.test.mjs
+          node --test server/dikidi-gmail.test.mjs
           node --test server/whatsapp-signup.test.mjs
           node --check admin/admin.js
           node --check admin/crm.js

@@ -1,3 +1,4 @@
+import {startGmailMailboxPolling} from './dikidi-gmail.mjs';
 import {startInstagramPolling,pollingAccount} from './instagram-polling.mjs';
 import {startTelegramPolling} from './telegram-polling.mjs';
 import {createTelegram} from './telegram.mjs';
@@ -31,9 +32,11 @@ export async function createCRM({records,json,origin,telegramTransport}){
      'INSERT INTO crm_contacts(source,external_id,name,phone) VALUES($1,$2,$3,$4) ON CONFLICT(source,external_id) DO UPDATE SET name=COALESCE(NULLIF(EXCLUDED.name,\'\'),crm_contacts.name),phone=COALESCE(NULLIF(EXCLUDED.phone,\'\'),crm_contacts.phone),updated_at=now() RETURNING id',
      [e.source,clean(e.externalId,300),clean(e.name,200),clean(e.phone,40)])).rows[0];
     // Serialise message processing per contact after upsert obtains the row lock.
-    let lead=(await c.query("SELECT id FROM crm_leads WHERE contact_id=$1 AND status IN ('new','working')",[contact.id])).rows[0];
+    // Each DIKIDI email is a distinct confirmed booking, not an open enquiry.
+    const booking=e.source==='dikidi'&&e.bookingAt instanceof Date&&Number.isFinite(+e.bookingAt);
+    let lead=booking?null:(await c.query("SELECT id FROM crm_leads WHERE contact_id=$1 AND status IN ('new','working')",[contact.id])).rows[0];
     const isNew=!lead;
-    if(isNew)lead=(await c.query('INSERT INTO crm_leads(contact_id,service,note) VALUES($1,$2,$3) RETURNING id',[contact.id,clean(e.service,200),clean(e.note)])).rows[0];
+    if(isNew)lead=(await c.query('INSERT INTO crm_leads(contact_id,service,note,status,booking_at) VALUES($1,$2,$3,$4,$5) RETURNING id',[contact.id,clean(e.service,200),clean(e.note),booking?'booked':'new',booking?e.bookingAt:null])).rows[0];
     await c.query('INSERT INTO crm_messages(lead_id,source,event_id,text) VALUES($1,$2,$3,$4)',[lead.id,e.source,clean(e.eventId,300),clean(e.text,4000)||'[Вложение или обращение без текста]']);
     await c.query('UPDATE crm_leads SET updated_at=now() WHERE id=$1',[lead.id]);
     if(isNew)await c.query('INSERT INTO crm_notifications(lead_id) VALUES($1)',[lead.id]);
@@ -156,5 +159,6 @@ export async function createCRM({records,json,origin,telegramTransport}){
  const reminderTimer=setInterval(()=>void telegram.reminders().catch(()=>{}),60000);reminderTimer.unref();
  const poller=process.env.TELEGRAM_UPDATE_MODE==='polling'&&process.env.TELEGRAM_BOT_TOKEN?startTelegramPolling({call:telegram.call,handle:telegram.handle}):null;
  const instagramPoller=process.env.INSTAGRAM_UPDATE_MODE==='polling'?startInstagramPolling({records,pool,ingest}):null;
- return {admin,webhook,ingest,telegram,close:async()=>{clearInterval(timer);clearInterval(reminderTimer);await poller?.stop();await instagramPoller?.stop();await pool.end()}};
+ const dikidiMailPoller=await startGmailMailboxPolling({pool,ingest});
+ return {admin,webhook,ingest,telegram,close:async()=>{clearInterval(timer);clearInterval(reminderTimer);await poller?.stop();await instagramPoller?.stop();await dikidiMailPoller?.stop();await pool.end()}};
 }

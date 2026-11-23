@@ -57,3 +57,10 @@ CREATE TABLE IF NOT EXISTS crm_bot_reminders (
 CREATE TABLE IF NOT EXISTS crm_instagram_poll_state (
  connection_key text PRIMARY KEY, started_at timestamptz NOT NULL, watermark timestamptz NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS crm_dikidi_mail_sync (
+ mailbox text PRIMARY KEY,
+ uid_validity text NOT NULL,
+ last_uid bigint NOT NULL DEFAULT 0,
+ updated_at timestamptz NOT NULL DEFAULT now()
+);
