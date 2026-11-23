@@ -16,13 +16,12 @@ export function trustedDikidiMail(parsed,expectedFrom){
  const from=parsed?.from?.value;
  if(!Array.isArray(from)||from.length!==1||String(from[0]?.address||'').toLowerCase()!==expectedFrom)return false;
  const domain=expectedFrom.split('@')[1];
- return (parsed.headerLines||[]).some(header=>{
-  if(header.key!=='authentication-results'||!/^Authentication-Results:\s*mx\.google\.com\s*;/i.test(header.line))return false;
-  const match=/\bdkim=pass\b[^;\r\n]*?\bheader\.(?:i|d)=@?([a-z0-9.-]+)/i.exec(header.line);
-  if(!match)return false;
-  const signer=match[1].toLowerCase();
-  return signer===domain||signer.endsWith('.'+domain);
- });
+ const header=(parsed.headerLines||[]).find(h=>h.key==='authentication-results');
+ if(!header||!/^Authentication-Results:\s*mx\.google\.com\s*;/i.test(header.line))return false;
+ const match=/\bdkim=pass\b[^;\r\n]*?\bheader\.(?:i|d)=@?([a-z0-9.-]+)/i.exec(header.line);
+ if(!match)return false;
+ const signer=match[1].toLowerCase();
+ return signer===domain||signer.endsWith('.'+domain);
 }
 
 // DIKIDI emails do not include the year. Infer it only if the planned start
