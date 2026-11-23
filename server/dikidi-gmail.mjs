@@ -112,8 +112,12 @@ export async function startGmailMailboxPolling({pool,ingest}){
  const {simpleParser}=await import('mailparser');
  return startDikidiGmailPolling({
   pool,ingest,config,
-  imapFactory:()=>new ImapFlow({host:GMAIL,port:993,secure:true,auth:{user:config.user,pass:config.password},
-    logger:false,connectionTimeout:12000,greetingTimeout:12000,socketTimeout:20000}),
+  imapFactory:()=>{
+   const client=new ImapFlow({host:GMAIL,port:993,secure:true,auth:{user:config.user,pass:config.password},
+     logger:false,connectionTimeout:12000,greetingTimeout:12000,socketTimeout:20000});
+   client.on('error',()=>{}); // Errors are reported by the scanner without exposing credentials.
+   return client;
+  },
   parseMime:source=>simpleParser(source,{skipTextToHtml:true})
  });
 }
