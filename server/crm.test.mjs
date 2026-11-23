@@ -82,5 +82,12 @@ try{
  assert.equal(sent.filter(x=>x.method==='sendMessage'&&x.payload.text.startsWith('Напоминание от Альбины')).length,1);
  assert.equal((await send('telegram',tap(18,3333,'consent:revoke'),'test_telegram_secret')).status,200);
  assert.equal((await pool.query("SELECT reminders FROM crm_bot_state WHERE chat_id='3333'")).rows[0].reminders,false);
+ const bookingAt=new Date('2026-11-23T14:00:00Z');
+ assert.equal(await crm.ingest({source:'dikidi',externalId:'+79260000000',eventId:'gmail:test-1',name:'Test Booking',phone:'+79260000000',text:'DIKIDI test booking',bookingAt}),true);
+ assert.equal(await crm.ingest({source:'dikidi',externalId:'+79260000000',eventId:'gmail:test-1',name:'Test Booking',phone:'+79260000000',text:'DIKIDI test booking',bookingAt}),false);
+ const dikidiRows=await pool.query("SELECT l.status,l.booking_at FROM crm_leads l JOIN crm_contacts c ON c.id=l.contact_id WHERE c.source='dikidi'");
+ assert.equal(dikidiRows.rows.length,1);
+ assert.equal(dikidiRows.rows[0].status,'booked');
+ assert.equal(new Date(dikidiRows.rows[0].booking_at).toISOString(),bookingAt.toISOString());
  console.log('CRM and Telegram PostgreSQL integration tests passed');
 }finally{await new Promise(resolve=>server.close(resolve));await crm.close();await pool.end()}
