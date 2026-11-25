@@ -3,7 +3,7 @@
 const $=id=>document.getElementById(id);
 const names={instagram:'Instagram',whatsapp:'WhatsApp',telegram:'Telegram',website:'Сайт',yandex:'Яндекс', '2gis':'2ГИС',google:'Google',dikidi:'DIKIDI',manual:'Вручную'};
 const states={new:'Новая',working:'В работе',booked:'Записан',closed:'Закрыта'};
-const views={leads:['Заявки','Все обращения','Новые клиенты и история общения.'],clients:['Клиенты','Клиентская база','Контакты по каналам связи и история обращений.'],bookings:['Записи','Запланированные визиты','Локальные записи. Расписание DIKIDI пока не синхронизировано.'],stats:['Статистика','Источники обращений','Число заявок по каждому каналу.']};
+const views={leads:['Заявки','Все обращения','Новые клиенты и история общения.'],clients:['Клиенты','Клиентская база','Контакты по каналам связи и история обращений.'],bookings:['Записи','Запланированные визиты','Локальные записи. Расписание DIKIDI пока не синхронизировано.'],stats:['Статистика','Источники обращений','Число заявок по каждому каналу.'],traffic:['Посещения сайта','Откуда пришли посетители','Анонимные переходы на сайт и нажатия. Нажатие на DIKIDI не означает подтвержденную запись.']};
 let view='leads',page=0,seq=0,timer,summary=null;
 function el(tag,cls,text){const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n}
 function labelName(r){return r.name||r.phone||'Клиент '+(r.external_id?.startsWith('manual:')?'':r.external_id||'')}
@@ -35,12 +35,37 @@ function renderStats(){
  if(!items.length)return empty('Пока нет данных','Статистика появится после первой заявки.');
  for(const r of items){const row=el('div','stat-row');row.append(el('span','',names[r.source]||r.source),el('strong','',String(r.count)));const bar=el('div','bar'),fill=el('span');fill.style.width=(total?100*r.count/total:0)+'%';bar.append(fill);list.append(row,bar)}$('results').replaceChildren(list);
 }
+const siteSources={'2gis':'2ГИС',yandex_maps:'Яндекс Карты',google_maps:'Google Карты',instagram:'Instagram',direct:'Прямой переход',other:'Другие источники'};
+function trafficTable(data){
+ const container=el('div','stat-list');
+ const period=el('div','toolbar');
+ const chooser=el('select');
+ chooser.setAttribute('aria-label','Период статистики');
+ for(const days of [7,30,90]){const option=el('option','',days+' дней');option.value=String(days);option.selected=days===data.days;chooser.append(option)}
+ chooser.addEventListener('change',()=>{trafficDays=Number(chooser.value);void load()});
+ period.append(el('strong','','За последние '+data.days+' дней'),chooser);
+ container.append(period);
+ container.append(el('p','muted','Считаем просмотры страницы и нажатия на кнопки, а не уникальных людей и не завершённые бронирования в DIKIDI.'));
+ const totals=data.totals;
+ const box=el('div','metrics');
+ box.append(metric('Просмотров',totals.visits),metric('Переходов в DIKIDI',totals.dikidi_clicks),metric('Нажатий Telegram',totals.telegram_clicks),metric('Скопировано анкет',totals.questionnaire_copies));
+ container.append(box);
+ for(const item of data.sources){
+  const row=el('div','stat-row');
+  row.append(el('span','',siteSources[item.source]||item.source),
+   el('strong','',item.visits+' просмотров · '+item.dikidi_clicks+' в DIKIDI · '+item.telegram_clicks+' в Telegram'));
+  container.append(row);
+ }
+ $('results').replaceChildren(container);
+}
+let trafficDays=30;
 async function load(){
  const request=++seq;
  $('pagination').hidden=true;empty('Загрузка…','');
  try{
   const q=new URLSearchParams({q:$('search').value,page:String(page)});
   if(view==='stats'){if(await loadSummary()&&request===seq)renderStats();return}
+  if(view==='traffic'){const result=await api('/api/crm/site-traffic?days='+trafficDays);if(request===seq){notice('');trafficTable(result)}return}
   if(view==='leads'){q.set('status',$('status').value);q.set('source',$('source').value)}
   const data=await api('/api/crm/'+view+'?'+q);
   if(seq!==request)return;
