@@ -25,6 +25,19 @@ test('recognises all three map UTM links before referrer',()=>{
   assert.equal(calls[0].payload.action,'visit');
  }
 });
+test('short map listing links retain separate attribution',()=>{
+ for(const [short,expected] of [
+  ['2gis','2gis'],['yandex','yandex_maps'],['google','google_maps']
+ ]){
+  const {window,calls}=setup('?s='+short);
+  assert.equal(window.SITE_TRAFFIC.source,expected);
+  assert.equal(calls[0].payload.source,expected);
+  window.SITE_TRAFFIC.track('dikidi_click');
+  assert.equal(calls[1].payload.source,expected);
+  assert.equal(calls[1].payload.action,'dikidi_click');
+ }
+ assert.equal(setup('?s=unknown').window.SITE_TRAFFIC.source,'direct');
+});
 test('falls back to map referrers without misattributing ordinary search',()=>{
  for(const [ref,expected] of [
   ['https://2gis.ru/moscow/firm/123','2gis'],
