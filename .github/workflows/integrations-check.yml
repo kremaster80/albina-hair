@@ -45,6 +45,7 @@ jobs:
           node --test server/site-booking.test.mjs
           node --test server/instagram-unified.test.mjs
           node --test server/instagram-polling.test.mjs
+          node --test server/instagram-intent.test.mjs
           node --test server/dikidi-email.test.mjs
           node --test server/dikidi-gmail.test.mjs
           node --test server/whatsapp-signup.test.mjs
