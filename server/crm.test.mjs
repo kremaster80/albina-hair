@@ -18,7 +18,7 @@ const telegramTransport=async(method,payload)=>{sent.push({method,payload});retu
 const records=new Map([['instagram',{state:'authorized',userId:'111'}],['whatsapp',{state:'authorized',wabaId:'222',phoneId:'333'}]]);
 function json(res,code,body){res.writeHead(code,{'Content-Type':'application/json'});res.end(JSON.stringify(body))}
 const crm=await createCRM({records,json,origin:'https://example.com',telegramTransport});
-const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');return url.pathname.startsWith('/api/webhooks/')?crm.webhook(req,res,url):crm.admin(req,res,url)});
+const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');return url.pathname==='/api/site/event'?crm.siteEvent(req,res):url.pathname.startsWith('/api/webhooks/')?crm.webhook(req,res,url):crm.admin(req,res,url)});
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const base='http://127.0.0.1:'+server.address().port;
 async function send(provider,data,secret){
@@ -26,7 +26,20 @@ async function send(provider,data,secret){
 }
 async function get(path){const r=await fetch(base+'/api/crm/'+path);assert.equal(r.status,200);return r.json()}
 try{
- await pool.query('TRUNCATE crm_contacts,crm_leads,crm_messages,crm_notifications,crm_bot_state,crm_bot_updates,crm_bot_reminders RESTART IDENTITY CASCADE');
+ await pool.query('TRUNCATE crm_contacts,crm_leads,crm_messages,crm_notifications,crm_bot_state,crm_bot_updates,crm_bot_reminders,crm_site_traffic RESTART IDENTITY CASCADE');
+ const track=(payload,origin='https://example.com')=>fetch(base+'/api/site/event',{method:'POST',headers:{'Content-Type':'application/json',Origin:origin},body:JSON.stringify(payload)});
+ assert.equal((await track({source:'2gis',action:'visit'},'https://untrusted.example')).status,403);
+ assert.equal((await track({source:'2gis',action:'visit'})).status,204);
+ assert.equal((await track({source:'2gis',action:'dikidi_click'})).status,204);
+ assert.equal((await track({source:'yandex_maps',action:'visit'})).status,204);
+ assert.equal((await track({source:'google_maps',action:'visit'})).status,204);
+ assert.equal((await track({source:'2gis',action:'unknown'})).status,400);
+ const report=await get('site-traffic?days=30');
+ assert.equal(report.totals.visits,3);
+ assert.equal(report.totals.dikidi_clicks,1);
+ assert.equal(report.sources.find(x=>x.source==='2gis').visits,1);
+ assert.equal(report.sources.find(x=>x.source==='google_maps').visits,1);
+ assert.equal(report.sources.find(x=>x.source==='yandex_maps').visits,1);
  const ig={object:'instagram',entry:[{id:'111',messaging:[{sender:{id:'1234'},message:{mid:'ig-1',text:'Стрижка'}}]}]};
  assert.equal((await send('instagram',ig,'wrong')).status,403);
  assert.equal((await send('instagram',ig,'test_ig_secret')).status,200);
