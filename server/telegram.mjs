@@ -61,8 +61,8 @@ export function createTelegram({pool,ingest,origin,transport}){
   const r=(await pool.query(select+' WHERE l.id=$1',[id])).rows[0];
   if(!r)return send(chat,'Заявка не найдена.',back);
   const msgs=(await pool.query('SELECT text FROM crm_messages WHERE lead_id=$1 ORDER BY id DESC LIMIT 5',[id])).rows.reverse();
-  const text=['Заявка #'+id,label(r),'Источник: '+(names[r.source]||r.source),'Статус: '+statuses[r.status],'Телефон: '+(r.phone||'не указан'),'Услуга: '+(r.service||'не указана'),'Запись: '+date(r.booking_at),r.note?'Комментарий: '+clip(r.note,300):'',msgs.length?'Последние сообщения:\n'+msgs.map(m=>'• '+clip(m.text,350)).join('\n'):''].filter(Boolean).join('\n');
-  return send(chat,text,[[btn('В работу','status:'+id+':working'),btn('Закрыть','status:'+id+':closed')],[btn('Назначить визит','book:'+id),btn('Новая','status:'+id+':new')],[btn('Клиент','client:'+r.contact_id)],[btn('К заявкам','list:all'),btn('Меню','menu')]]);
+  const text=[(r.source==='instagram'?'Обращение #':'Заявка #')+id,label(r),'Источник: '+(names[r.source]||r.source),'Статус: '+statuses[r.status],'Телефон: '+(r.phone||'не указан'),'Услуга: '+(r.service||'не указана'),'Запись: '+date(r.booking_at),r.note?'Комментарий: '+clip(r.note,300):'',msgs.length?'Последние сообщения:\n'+msgs.map(m=>'• '+clip(m.text,350)).join('\n'):''].filter(Boolean).join('\n');
+  return send(chat,text,[[btn('В работу','status:'+id+':working'),btn('Закрыть','status:'+id+':closed')],[btn('Назначить визит','book:'+id),btn('Новая','status:'+id+':new')],[btn('Карточка клиента','client:'+r.contact_id),btn('Все клиенты','clients:0')],[btn('К заявкам','list:all'),btn('Главное меню','menu')]]);
  }
  async function clients(chat,q='',offset=0){
   const r=(await pool.query("SELECT id,name,phone,source FROM crm_contacts WHERE ($1='' OR concat_ws(' ',name,phone,external_id) ILIKE '%'||$1||'%' OR ($2<>'' AND regexp_replace(phone,'[^0-9]','','g') LIKE '%'||$2||'%')) ORDER BY updated_at DESC,id DESC LIMIT 11 OFFSET $3",[q,q.replace(/\D/g,''),offset])).rows;
