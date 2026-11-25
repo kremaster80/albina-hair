@@ -32,6 +32,19 @@ try{
  assert.equal((await send('instagram',ig,'test_ig_secret')).status,200);
  assert.equal((await send('instagram',ig,'test_ig_secret')).status,200);
  assert.equal((await send('instagram',{...ig,entry:[{...ig.entry[0],id:'999'}]},'test_ig_secret')).status,200);
+ // An Instagram story reaction/emoji-only message is not a new inquiry.
+ const passive={object:'instagram',entry:[{id:'111',messaging:[{sender:{id:'emoji-only'},message:{mid:'ig-react-1',text:'😍'}},{sender:{id:'blank-only'},message:{mid:'ig-blank-1',text:''}}]}]};
+ assert.equal((await send('instagram',passive,'test_ig_secret')).status,200);
+ assert.equal((await get('summary')).contacts,1);
+ assert.equal((await pool.query("SELECT COUNT(*)::int AS n FROM crm_leads")).rows[0].n,1);
+ assert.equal((await pool.query("SELECT COUNT(*)::int AS n FROM crm_notifications")).rows[0].n,1);
+ // Reactions from a person with an open inquiry may remain in its message history,
+ // without producing a second lead or notification.
+ const existingReaction={object:'instagram',entry:[{id:'111',messaging:[{sender:{id:'1234'},message:{mid:'ig-react-existing',text:'😍'}}]}]};
+ assert.equal((await send('instagram',existingReaction,'test_ig_secret')).status,200);
+ assert.equal((await send('instagram',existingReaction,'test_ig_secret')).status,200);
+ assert.equal((await pool.query("SELECT COUNT(*)::int AS n FROM crm_messages WHERE source='instagram'")).rows[0].n,2);
+ assert.equal((await pool.query("SELECT COUNT(*)::int AS n FROM crm_notifications")).rows[0].n,1);
  const wa={object:'whatsapp_business_account',entry:[{id:'222',changes:[{value:{metadata:{phone_number_id:'333'},contacts:[{wa_id:'79000000000',profile:{name:'Клиент тест'}}],messages:[{id:'wa-1',from:'79000000000',text:{body:'Окрашивание'}}]}}]}]};
  assert.equal((await send('whatsapp',wa,'test_wa_secret')).status,200);
  process.env.TELEGRAM_PRIVACY_URL='';
@@ -57,14 +70,16 @@ try{
  assert.ok(!sent.filter(x=>x.method==='sendMessage').at(-1).payload.text.includes('Заявка #1'));
  process.env.TELEGRAM_ADMIN_CHAT_ID='9999';
  assert.equal((await send('telegram',tap(7,9999,'lead:1'),'test_telegram_secret')).status,200);
- assert.ok(sent.filter(x=>x.method==='sendMessage').at(-1).payload.text.includes('Заявка #1'));
+ assert.ok(sent.filter(x=>x.method==='sendMessage').at(-1).payload.text.includes('Обращение #1'));
+ const leadKeyboard=sent.filter(x=>x.method==='sendMessage').at(-1).payload.reply_markup.inline_keyboard;
+ assert.ok(leadKeyboard.some(row=>row.some(button=>button.text==='Все клиенты'&&button.callback_data==='clients:0')));
  assert.equal((await send('telegram',tap(8,9999,'status:1:working'),'test_telegram_secret')).status,200);
  assert.equal((await get('leads/1')).lead.status,'working');
  assert.equal((await send('telegram',tap(9,9999,'status:1:new'),'test_telegram_secret')).status,200);
  delete process.env.TELEGRAM_ADMIN_CHAT_ID;
  const summary=await get('summary');assert.equal(summary.status.new,3);assert.equal(summary.contacts,3);
  const leads=(await get('leads?q='+encodeURIComponent('Стрижка'))).leads;assert.equal(leads.length,1);
- const detail=await get('leads/'+leads[0].id);assert.equal(detail.messages.length,1);
+ const detail=await get('leads/'+leads[0].id);assert.equal(detail.messages.length,2);
  const set=await fetch(base+'/api/crm/leads/'+leads[0].id,{method:'POST',body:JSON.stringify({status:'booked',service:'Стрижка',bookingAt:'2026-12-01T10:00:00Z'})});assert.equal(set.status,200);
  assert.equal((await get('bookings')).bookings.length,1);
  const del=await fetch(base+'/api/crm/clients/'+leads[0].contact_id,{method:'DELETE'});assert.equal(del.status,200);
