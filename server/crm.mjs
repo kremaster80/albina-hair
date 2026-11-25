@@ -1,5 +1,6 @@
 import {startGmailMailboxPolling} from './dikidi-gmail.mjs';
 import {startInstagramPolling,pollingAccount} from './instagram-polling.mjs';
+import {isPassiveInstagramMessage} from './instagram-intent.mjs';
 import {startTelegramPolling} from './telegram-polling.mjs';
 import {createTelegram} from './telegram.mjs';
 import { createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
@@ -28,13 +29,20 @@ export async function createCRM({records,json,origin,telegramTransport}){
     await c.query('BEGIN');
     await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[e.source+':'+e.eventId]);
     if((await c.query('SELECT 1 FROM crm_messages WHERE source=$1 AND event_id=$2',[e.source,e.eventId])).rowCount){await c.query('COMMIT');return false}
-    const contact=(await c.query(
-     'INSERT INTO crm_contacts(source,external_id,name,phone) VALUES($1,$2,$3,$4) ON CONFLICT(source,external_id) DO UPDATE SET name=COALESCE(NULLIF(EXCLUDED.name,\'\'),crm_contacts.name),phone=COALESCE(NULLIF(EXCLUDED.phone,\'\'),crm_contacts.phone),updated_at=now() RETURNING id',
-     [e.source,clean(e.externalId,300),clean(e.name,200),clean(e.phone,40)])).rows[0];
-    // Serialise message processing per contact after upsert obtains the row lock.
+    // Emoji-only and blank Instagram events can be story reactions. Never
+    // create a contact/lead for them; preserve them only in an open conversation.
+    const passive=isPassiveInstagramMessage(e);
+    const contact=passive
+      ? (await c.query("SELECT id FROM crm_contacts WHERE source=$1 AND external_id=$2 FOR UPDATE",[e.source,clean(e.externalId,300)])).rows[0]
+      : (await c.query(
+         'INSERT INTO crm_contacts(source,external_id,name,phone) VALUES($1,$2,$3,$4) ON CONFLICT(source,external_id) DO UPDATE SET name=COALESCE(NULLIF(EXCLUDED.name,\'\'),crm_contacts.name),phone=COALESCE(NULLIF(EXCLUDED.phone,\'\'),crm_contacts.phone),updated_at=now() RETURNING id',
+         [e.source,clean(e.externalId,300),clean(e.name,200),clean(e.phone,40)])).rows[0];
+    if(!contact){await c.query('COMMIT');return false}
+    // The contact row lock also serialises message handling for this client.
     // Each DIKIDI email is a distinct confirmed booking, not an open enquiry.
     const booking=e.source==='dikidi'&&e.bookingAt instanceof Date&&Number.isFinite(+e.bookingAt);
     let lead=booking?null:(await c.query("SELECT id FROM crm_leads WHERE contact_id=$1 AND status IN ('new','working')",[contact.id])).rows[0];
+    if(passive&&!lead){await c.query('COMMIT');return false}
     const isNew=!lead;
     if(isNew)lead=(await c.query('INSERT INTO crm_leads(contact_id,service,note,status,booking_at) VALUES($1,$2,$3,$4,$5) RETURNING id',[contact.id,clean(e.service,200),clean(e.note),booking?'booked':'new',booking?e.bookingAt:null])).rows[0];
     await c.query('INSERT INTO crm_messages(lead_id,source,event_id,text) VALUES($1,$2,$3,$4)',[lead.id,e.source,clean(e.eventId,300),clean(e.text,4000)||'[Вложение или обращение без текста]']);
@@ -149,7 +157,7 @@ export async function createCRM({records,json,origin,telegramTransport}){
    const r=await c.query("SELECT n.id,n.lead_id,n.attempts,c.source FROM crm_notifications n JOIN crm_leads l ON l.id=n.lead_id JOIN crm_contacts c ON c.id=l.contact_id WHERE sent_at IS NULL AND next_attempt_at<=now() AND attempts<12 ORDER BY n.id FOR UPDATE OF n SKIP LOCKED LIMIT 1");
    if(r.rowCount){
     const n=r.rows[0];let ok=false;
-    try{await telegram.send(process.env.TELEGRAM_ADMIN_CHAT_ID,'Новая заявка #'+n.lead_id+' · '+n.source,[[{text:'Открыть заявку',callback_data:'lead:'+n.lead_id}],[{text:'Рабочий кабинет',url:origin+'/admin/'}]]);ok=true}catch{}
+    try{await telegram.send(process.env.TELEGRAM_ADMIN_CHAT_ID,(n.source==='instagram'?'Новое обращение #':'Новая заявка #')+n.lead_id+' · '+n.source,[[{text:'Открыть заявку',callback_data:'lead:'+n.lead_id}],[{text:'Рабочий кабинет',url:origin+'/admin/'}]]);ok=true}catch{}
     if(ok)await c.query('UPDATE crm_notifications SET sent_at=now() WHERE id=$1',[n.id]);
     else await c.query("UPDATE crm_notifications SET attempts=attempts+1,next_attempt_at=now()+($2::int * interval '1 second') WHERE id=$1",[n.id,Math.min(3600,30*2**n.attempts)]);
    }
