@@ -53,7 +53,7 @@ export async function createCRM({records,json,origin,telegramTransport}){
     await c.query('COMMIT');return true;
    }catch(err){await c.query('ROLLBACK');throw err}finally{c.release()}
  }
- const telegram=createTelegram({pool,ingest,origin,transport:telegramTransport});
+ const telegram=createTelegram({pool,ingest,origin,transport:telegramTransport,siteSummary:siteTraffic.summary});
  const rowsQuery="SELECT l.id,l.status,l.service,l.note,l.booking_at,l.created_at,l.updated_at,c.id AS contact_id,c.source,c.name,c.phone,c.external_id,(SELECT text FROM crm_messages WHERE lead_id=l.id ORDER BY id DESC LIMIT 1) AS last_message FROM crm_leads l JOIN crm_contacts c ON c.id=l.contact_id";
  async function admin(req,res,url){
   const p=url.pathname;
