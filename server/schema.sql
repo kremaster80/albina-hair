@@ -64,3 +64,12 @@ CREATE TABLE IF NOT EXISTS crm_dikidi_mail_sync (
  last_uid bigint NOT NULL DEFAULT 0,
  updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Aggregate source/action/day counters; never stores IP, cookies, user agent or identity.
+CREATE TABLE IF NOT EXISTS crm_site_traffic (
+ day date NOT NULL,
+ source text NOT NULL CHECK(source IN ('2gis','yandex_maps','google_maps','instagram','direct','other')),
+ action text NOT NULL CHECK(action IN ('visit','dikidi_click','telegram_click','instagram_click','questionnaire_copy')),
+ total bigint NOT NULL DEFAULT 0 CHECK(total>=0),
+ PRIMARY KEY(day,source,action)
+);
