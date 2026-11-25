@@ -1,3 +1,4 @@
+import {createSiteTraffic} from './site-traffic.mjs';
 import {startGmailMailboxPolling} from './dikidi-gmail.mjs';
 import {startInstagramPolling,pollingAccount} from './instagram-polling.mjs';
 import {isPassiveInstagramMessage} from './instagram-intent.mjs';
@@ -22,6 +23,7 @@ const textReply=(res,status,value)=>{res.writeHead(status,{'Content-Type':'text/
 export async function createCRM({records,json,origin,telegramTransport}){
  const pool=new Pool({connectionString:process.env.DATABASE_URL,max:5,connectionTimeoutMillis:5000,statement_timeout:12000});
  await pool.query(await readFile(new URL('./schema.sql',import.meta.url),'utf8'));
+ const siteTraffic=createSiteTraffic({pool,origin});
  async function ingest(e){
    if(!sources.has(e.source)||!e.externalId||!e.eventId)return false;
    const c=await pool.connect();
@@ -51,7 +53,7 @@ export async function createCRM({records,json,origin,telegramTransport}){
     await c.query('COMMIT');return true;
    }catch(err){await c.query('ROLLBACK');throw err}finally{c.release()}
  }
- const telegram=createTelegram({pool,ingest,origin,transport:telegramTransport});
+ const telegram=createTelegram({pool,ingest,origin,transport:telegramTransport,siteSummary:siteTraffic.summary});
  const rowsQuery="SELECT l.id,l.status,l.service,l.note,l.booking_at,l.created_at,l.updated_at,c.id AS contact_id,c.source,c.name,c.phone,c.external_id,(SELECT text FROM crm_messages WHERE lead_id=l.id ORDER BY id DESC LIMIT 1) AS last_message FROM crm_leads l JOIN crm_contacts c ON c.id=l.contact_id";
  async function admin(req,res,url){
   const p=url.pathname;
@@ -62,6 +64,10 @@ export async function createCRM({records,json,origin,telegramTransport}){
     const args=[q,statusNames.has(state)?state:'',sources.has(source)?source:'',page*50];
     const data=await pool.query(rowsQuery+" WHERE ($1='' OR concat_ws(' ',c.name,c.phone,c.external_id,l.service,l.note) ILIKE '%'||$1||'%' OR EXISTS(SELECT 1 FROM crm_messages m WHERE m.lead_id=l.id AND m.text ILIKE '%'||$1||'%')) AND ($2='' OR l.status=$2) AND ($3='' OR c.source=$3) ORDER BY l.updated_at DESC,l.id DESC LIMIT 51 OFFSET $4",args);
     return json(res,200,{leads:data.rows.slice(0,50),hasMore:data.rows.length>50,page});
+   }
+   if(req.method==='GET'&&p==='/api/crm/site-traffic'){
+     const days=Number(url.searchParams.get('days')||30);
+     return json(res,200,await siteTraffic.summary(days));
    }
    if(req.method==='GET'&&p==='/api/crm/summary'){
     const summary=await pool.query('SELECT status,count(*)::int AS count FROM crm_leads GROUP BY status');
@@ -168,5 +174,5 @@ export async function createCRM({records,json,origin,telegramTransport}){
  const poller=process.env.TELEGRAM_UPDATE_MODE==='polling'&&process.env.TELEGRAM_BOT_TOKEN?startTelegramPolling({call:telegram.call,handle:telegram.handle}):null;
  const instagramPoller=process.env.INSTAGRAM_UPDATE_MODE==='polling'?startInstagramPolling({records,pool,ingest}):null;
  const dikidiMailPoller=await startGmailMailboxPolling({pool,ingest});
- return {admin,webhook,ingest,telegram,close:async()=>{clearInterval(timer);clearInterval(reminderTimer);await poller?.stop();await instagramPoller?.stop();await dikidiMailPoller?.stop();await pool.end()}};
+ return {admin,webhook,ingest,telegram,siteEvent:siteTraffic.publicEvent,siteSummary:siteTraffic.summary,close:async()=>{clearInterval(timer);clearInterval(reminderTimer);await poller?.stop();await instagramPoller?.stop();await dikidiMailPoller?.stop();await pool.end()}};
 }

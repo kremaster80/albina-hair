@@ -25,7 +25,7 @@ function appointment(value){
  const p=Object.fromEntries(parts.map(v=>[v.type,v.value]));
  return p.day===d&&p.month===mo&&p.year===y&&p.hour===h&&p.minute===mi?at:null;
 }
-export function createTelegram({pool,ingest,origin,transport}){
+export function createTelegram({pool,ingest,origin,transport,siteSummary}){
  const adminId=()=>String(process.env.TELEGRAM_ADMIN_CHAT_ID||'');
  const pending=new Map();
  const policy=()=>httpsURL(process.env.TELEGRAM_PRIVACY_URL);
@@ -42,7 +42,7 @@ export function createTelegram({pool,ingest,origin,transport}){
  async function getState(chat){return (await pool.query('SELECT mode,draft,consented_at,reminders FROM crm_bot_state WHERE chat_id=$1',[chat])).rows[0]||{mode:'',draft:{},consented_at:null,reminders:false}}
  async function mode(chat,value='',draft={}){await pool.query("INSERT INTO crm_bot_state(chat_id,mode,draft) VALUES($1,$2,$3) ON CONFLICT(chat_id) DO UPDATE SET mode=EXCLUDED.mode,draft=EXCLUDED.draft,updated_at=now()",[chat,value,JSON.stringify(draft)])}
  const back=[[btn('Главное меню','menu')]];
- async function adminMenu(chat){await mode(chat);return send(chat,'ALBINA · рабочий кабинет\n\nВыберите раздел.',[[btn('Новые заявки','list:new'),btn('Все заявки','list:all')],[btn('Клиенты','clients:0'),btn('Поиск','search')],[btn('Записи','bookings'),btn('Статистика','stats')],[link('Подключения и CRM',origin+'/admin/')]])}
+ async function adminMenu(chat){await mode(chat);return send(chat,'ALBINA · рабочий кабинет\n\nВыберите раздел.',[[btn('Новые заявки','list:new'),btn('Все заявки','list:all')],[btn('Клиенты','clients:0'),btn('Поиск','search')],[btn('Записи','bookings'),btn('Статистика','stats')],[btn('Посещения сайта','traffic')],[link('Подключения и CRM',origin+'/admin/')]])}
  async function clientMenu(chat){await mode(chat);return send(chat,'Здравствуйте! Я помощник Альбины.\nВыберите, чем могу помочь.',[[btn('Заполнить анкету','questionnaire')],[btn('Написать Альбине','write')],...(booking()?[[link('Онлайн-запись DIKIDI',booking())]]:[]),[btn('Напоминания','reminders')],[btn('Условия обработки данных','privacy')]])}
  async function consent(chat){
   if(!policy())return booking()
@@ -84,6 +84,12 @@ export function createTelegram({pool,ingest,origin,transport}){
   const counts=Object.fromEntries(result.map(x=>[x.status,x.count]));
   return send(chat,['Статистика','Клиентов: '+c,...Object.entries(statuses).map(([k,v])=>v+': '+(counts[k]||0)),'','Источники:',...by.map(x=>(names[x.source]||x.source)+': '+x.count)].join('\n'),back);
  }
+ async function traffic(chat){
+  if(!siteSummary)return send(chat,'Статистика сайта временно недоступна.',back);
+  const data=await siteSummary(30);
+  const labels={'2gis':'2ГИС',yandex_maps:'Яндекс Карты',google_maps:'Google Карты',instagram:'Instagram',direct:'Прямые',other:'Другие'};
+  return send(chat,['Посещения сайта за 30 дней','Просмотры: '+data.totals.visits,'Переходы в DIKIDI: '+data.totals.dikidi_clicks,'Нажатия Telegram: '+data.totals.telegram_clicks,'',...data.sources.filter(x=>x.visits||x.dikidi_clicks).map(x=>(labels[x.source]||x.source)+': '+x.visits+' просмотров, '+x.dikidi_clicks+' переходов в DIKIDI'),'','Это клики, а не подтверждённые записи в DIKIDI.'].join('\n'),back);
+ }
  async function bookings(chat){
   const r=(await pool.query(select+" WHERE l.status='booked' AND l.booking_at>=now() ORDER BY l.booking_at LIMIT 20")).rows;
   return send(chat,'Предстоящие визиты (локальные записи, без синхронизации DIKIDI)\n'+(r.length?r.map(x=>'• '+date(x.booking_at)+' — '+label(x)).join('\n'):'Записей нет.'),[...r.map(x=>[btn('#'+x.id+' · '+label(x),'lead:'+x.id)]),...back]);
@@ -97,6 +103,7 @@ export function createTelegram({pool,ingest,origin,transport}){
   if(data==='menu'||text==='/start'||text==='/menu')return adminMenu(chat);
   if(data==='search'){await mode(chat,'search');return send(chat,'Введите имя или телефон клиента.',back)}
   if(data==='stats'||text==='/stats')return stats(chat);
+  if(data==='traffic'||text==='/traffic')return traffic(chat);
   if(data==='bookings'||text==='/bookings')return bookings(chat);
   if(text==='/leads')return list(chat);
   if(text==='/clients')return clients(chat);

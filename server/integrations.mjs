@@ -326,6 +326,7 @@ async function route(req, res) {
 // OAuth callbacks come from providers and may not include the admin cookie.
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || '/', PUBLIC_ORIGIN);
+  if (url.pathname === '/api/site/event') return crm ? await crm.siteEvent(req,res) : json(res,503,{error:'CRM unavailable'});
   if (url.pathname.startsWith('/api/webhooks/')) return crm ? await crm.webhook(req,res,url) : json(res,503,{error:'CRM unavailable'});
   const callback = url.pathname.match(/^\/api\/integrations\/(instagram|google)\/callback$/);
   if (req.method === 'GET' && callback) {

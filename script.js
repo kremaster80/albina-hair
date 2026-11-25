@@ -4,6 +4,7 @@
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const config = window.SITE_CONFIG || {};
+  const traffic = window.SITE_TRAFFIC;
   const toast = $('#toast');
   let toastTimer;
 
@@ -115,11 +116,16 @@
     const link = document.createElement('a');
     link.className = 'contact-chip'; link.textContent = label;
     link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer';
+    const action = label === 'Запись DIKIDI' ? 'dikidi_click' : label === 'Telegram' ? 'telegram_click' : label === 'Instagram' ? 'instagram_click' : null;
+    if (action) link.addEventListener('click', () => traffic?.track(action));
     contactsContainer.appendChild(link);
   }
   if (validDikidiBooking) contactLink('Запись DIKIDI', dikidiBookingUrl);
   const bookingLink = $('#dikidi-booking-link');
-  if (bookingLink && validDikidiBooking) bookingLink.href = dikidiBookingUrl;
+  if (bookingLink && validDikidiBooking) {
+    bookingLink.href = dikidiBookingUrl;
+    bookingLink.addEventListener('click', () => traffic?.track('dikidi_click'));
+  }
   if (validTelegram) contactLink('Telegram', `https://t.me/${telegram}`);
   if (validInstagram) contactLink('Instagram', instagram);
   if (address) {
@@ -166,6 +172,7 @@
     const message = [
       `Здравствуйте, Альбина! Меня зовут ${name.value.trim()}.`,
       `Интересует услуга: ${service.value}.`,
+      ...(['2gis', 'yandex_maps', 'google_maps'].includes(traffic?.source) ? [`Источник перехода на сайт: ${traffic.sourceLabel}.`] : []),
       ...(questionnaire.length ? ['', 'Немного обо мне:', ...questionnaire] : []),
       ...(note ? ['', `Мои пожелания: ${note}`] : []),
       '',
@@ -174,6 +181,7 @@
     feedback.hidden = false;
     feedback.textContent = message;
     const copied = await copyToClipboard(message);
+    if (copied) traffic?.track('questionnaire_copy');
     showToast(copied ? 'Анкета скопирована — отправьте её Альбине в Telegram' : 'Анкета готова — скопируйте её из блока');
   });
 
