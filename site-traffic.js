@@ -5,6 +5,11 @@
   // No cookies, visitor IDs, IP addresses, full URLs, or form data are sent.
   function sourceFromVisit(search, referrer) {
     const params = new URLSearchParams(search);
+    // Compact, first-party links for map listing website fields:
+    // ?s=2gis, ?s=yandex, ?s=google. Legacy UTM links still work.
+    const short = (params.get('s') || '').trim().toLowerCase();
+    const aliases = { '2gis':'2gis', yandex:'yandex_maps', google:'google_maps' };
+    if (Object.prototype.hasOwnProperty.call(aliases, short)) return aliases[short];
     const src = (params.get('utm_source') || '').trim().toLowerCase();
     const medium = (params.get('utm_medium') || '').trim().toLowerCase();
     const campaign = (params.get('utm_campaign') || '').trim().toLowerCase();
