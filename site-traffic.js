@@ -25,8 +25,8 @@
       if (host === '2gis.ru' || host.endsWith('.2gis.ru') ||
           host === '2gis.com' || host.endsWith('.2gis.com') ||
           host === '2gis.kz' || host.endsWith('.2gis.kz')) return '2gis';
-      if ((host.startsWith('maps.yandex.') || host.startsWith('yandex.')) ||
-          ((host === 'yandex.ru' || host.endsWith('.yandex.ru')) && url.pathname.startsWith('/maps'))) return 'yandex_maps';
+      if (host.startsWith('maps.yandex.') ||
+          ((host === 'yandex.ru' || host.endsWith('.yandex.ru') || host === 'yandex.com') && url.pathname.startsWith('/maps'))) return 'yandex_maps';
       // Google search can provide only google.com as referrer: do not count as Maps.
       if (host.startsWith('maps.google.') ||
           (/(^|\.)google\.[a-z.]+$/.test(host) && url.pathname.startsWith('/maps'))) return 'google_maps';
