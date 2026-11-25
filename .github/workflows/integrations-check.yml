@@ -7,6 +7,7 @@ on:
       - 'server/**'
       - 'index.html'
       - 'script.js'
+      - 'site-traffic.js'
       - 'config.js'
       - 'styles.css'
       - '.github/workflows/integrations-check.yml'
@@ -41,6 +42,8 @@ jobs:
         run: |
           node --check server/integrations.mjs
           node --check script.js
+          node --check site-traffic.js
+          node --test server/site-traffic.test.mjs
           node --check config.js
           node --test server/site-booking.test.mjs
           node --test server/instagram-unified.test.mjs
